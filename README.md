@@ -13,6 +13,21 @@
 - **Everyone watches the same run.** The server sends a seed and a checkpoint, and every browser re-simulates the identical game frame for frame. The *time since last crash* clock is shared by all viewers.
 - **You can try to kill it.** Choose which obstacles Chrome spawns next. The server replays your attack, and a verified kill goes on the board and into the training data.
 
+## Results (measured, not claimed)
+
+| Test | Result |
+|---|---|
+| **Promotion gate**: champion v3 on 500 fresh tracks × 30 min at top speed | **500 / 500**, zero crashes |
+| **Every past crash** (360 lessons, 3 s before impact) | **360 / 360** cleared |
+| **Held-out validation**: 2,000 unseen tracks × 3 h at top speed | **2,000 / 2,000**, 6,065 game-hours, zero crashes |
+| **Is forever even possible?** Lookahead oracle, 200 tracks × 4.6 h | **200 / 200**, no unclearable obstacle sequence found |
+| **Literal chrome://dino** in Google Chrome 154, real time and real randomness | 5 min, zero crashes, score 5,553 (live demo, not replayable) |
+| **Determinism**: Node vs Chrome vs Firefox vs WebKit | identical per-frame state, sense and key hashes |
+
+Honest notes:
+- **v1 wasn't perfect.** It passed the gate but crashed once in 6,062 game-hours of held-out play: it jumped into a high pterodactyl. Promotion now also requires 1,000 fresh held-out tracks × 60 min.
+- **Tallies:** training has simulated **25+ billion frames** over **1,800+ generations** on one laptop.
+
 ## What's on the page
 
 | | |

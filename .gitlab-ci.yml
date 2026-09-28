@@ -28,12 +28,11 @@ test:
 
 determinism:
   stage: test
-  image: mcr.microsoft.com/playwright:v1.63.0-noble
   variables:
     PW_CHROME_CHANNEL: bundled
     DET_SEEDS: "30"
   script:
-    - node --version
+    - npx playwright install --with-deps chromium firefox webkit
     - node build.mjs
     - node --test test/e2e/determinism.test.ts
   rules:

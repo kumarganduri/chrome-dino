@@ -353,6 +353,9 @@ button { font: inherit; color: inherit; }
   .brain { height: 300px; }
 }
 @media (max-width: 520px) {
+  .tag-src { display: none; }
+  .stage-tag { top: 10px; left: 12px; }
+  .hero .stage { padding-top: 28px; }
   .top, main, .foot { padding: 0 16px; }
   .top { padding-top: 16px; padding-bottom: 12px; }
   .steps { grid-template-columns: minmax(0, 1fr); }

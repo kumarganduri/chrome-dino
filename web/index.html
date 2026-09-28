@@ -12,7 +12,7 @@
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>dino<span class="brand-dot">.forever</span></a>
+  <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span><span>dino<span class="brand-dot">.forever</span></span></a>
   <p class="tagline">Chrome's real T-Rex game, learning live to never crash.</p>
   <div class="live" id="live-pill" data-state="offline">
     <span class="live-dot" aria-hidden="true"></span>
@@ -24,7 +24,7 @@
   <section class="hero" aria-label="Champion playing live">
     <div class="stage" id="champion-stage">
       <canvas id="champion" width="600" height="150" aria-label="The champion brain playing Chrome's dino game"></canvas>
-      <div class="stage-tag" id="champion-tag">loading champion…</div>
+      <div class="stage-tag"><span id="champion-tag">loading champion…</span><span class="tag-src"> · Chrome's real T-Rex (Chromium 644979367a)</span></div>
       <div class="stage-banner" id="crash-banner" role="status">Crashed. Recorded as a lesson. Restarting…</div>
     </div>
 

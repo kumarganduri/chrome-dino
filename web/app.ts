@@ -84,7 +84,7 @@ async function main() {
   if (!current) {
     tag.textContent = 'no trained brain published yet';
   } else {
-    tag.textContent = `${current.label} · Chrome's real T-Rex (Chromium 644979367a)`;
+    tag.textContent = current.label;
     view.start(current, {seed: randomSeed(), startWall: Date.now()});
   }
 
@@ -236,7 +236,7 @@ async function main() {
       if (s.champion) {
         current = {version: s.champion.version, genome: validateGenome(s.champion.genome), label: s.champion.label};
         view.setChampion(current);
-        tag.textContent = `${current.label} · Chrome's real T-Rex (Chromium 644979367a)`;
+        tag.textContent = current.label;
       }
       if (s.run && current) {
         liveRun = {seed: s.run.seed, championVersion: s.run.championVersion};
@@ -271,7 +271,7 @@ async function main() {
         case 'promotion':
           current = {version: e.champion.version, genome: validateGenome(e.champion.genome), label: e.champion.label};
           view.setChampion(current);
-          tag.textContent = `${current.label} took over · Chrome's real T-Rex`;
+          tag.textContent = `${current.label} took over`;
           break;
         case 'kill':
           graveyard.add({id: `kill-${e.kill.name}-${Date.now()}`, title: `killed by ${e.kill.name}`, source: 'attack',

@@ -261,9 +261,8 @@ for (let n = 0; n < maxGens && !stop; n++) {
   const bestIdx = fitness.indexOf(Math.max(...fitness));
   const best = pop.members[bestIdx]!;
   const bestResults = results[bestIdx]!;
-  // Blocking cases the best genome now clears are done.
-  const passed = new Set(episodes.map((e, i) => (e.kind === 'case' && bestResults[i]!.survived ? e.id : '')).filter(Boolean));
-  blocking = blocking.filter((id) => !passed.has(id));
+  // Blocking cases stay until a promotion: one generation's best passing a
+  // case does not mean the lineage keeps that skill.
   // Record the best genome's crashes (deterministic re-run with snapshots).
   const crashed = bestResults.map((r, i) => (!r.survived ? i : -1)).filter((i) => i >= 0);
   if (crashed.length) {

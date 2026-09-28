@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>dino determinism harness</title>
+<!-- Scaffold Chrome's neterror page provides around the runner. -->
+<style>.interstitial-wrapper{width:600px;padding:0;margin:0}.hidden{display:none}</style>
+<div class="interstitial-wrapper"><div class="icon icon-offline"></div></div>
+<div id="offline-resources">
+  <img id="offline-resources-1x" src="/vendor/chromium-dino/images/100-offline-sprite.png">
+  <img id="offline-resources-2x" src="/vendor/chromium-dino/images/200-offline-sprite.png">
+</div>
+<script type="module">
+  import * as core from '/dist/core.js';
+  window.core = core;
+  window.ready = Promise.all([...document.images].map((i) => i.complete ? 0 : new Promise((r) => i.onload = r)));
+
+  // Genuine page init: Runner.initializeInstance → loadImages → init(), with
+  // the game's randomness and clock pinned and rAF captured.
+  window.pageRunnerDrive = (seed, frames) => {
+    const rng = new core.Rng(seed);
+    const clock = {now: 1000};
+    window.requestAnimationFrame = () => 1;
+    const realRandom = Math.random, realNow = performance.now;
+    Math.random = rng.next;
+    performance.now = () => clock.now;
+    let runner;
+    try {
+      runner = core.engine.Runner.initializeInstance('.interstitial-wrapper');
+    } finally {
+      Math.random = realRandom;
+      performance.now = realNow;
+    }
+    const canvas = runner.canvas;
+    const game = core.Game.adopt(core.engine, runner, rng, clock, {canvas, image: runner.imageSprite});
+    return core.drive(core.engine, seed, frames, game);
+  };
+</script>

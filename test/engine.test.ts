@@ -129,3 +129,11 @@ test('snapshot version mismatch fails loudly', () => {
   const snap = {...g.snapshot(), v: 999};
   assert.throws(() => g.restore(snap), /snapshot version 999/);
 });
+
+test('run starts where the intro would leave the dino (x = startXPos)', () => {
+  const g = Game.create(engine, 9);
+  assert.equal(g.runner.tRex.xPos, 50);
+  g.step({jump: true, down: false});
+  while (g.runner.tRex.jumping) g.step();
+  assert.equal(g.runner.tRex.xPos, 50, 'reset() after landing returns to xInitialPos');
+});

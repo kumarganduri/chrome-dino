@@ -73,7 +73,7 @@ export class Game {
     let runner: any;
     const clock = {now: CLOCK_START};
     withGameGlobals(rng, clock, () => {
-      runner = new (engine.Runner as any)('#dino');
+      runner = constructDetachedRunner(engine);
       runner.spriteDef = engine.spriteDefinitionByType.original.ldpi;
       runner.imageSprite = image;
       runner.origImageSprite = image;
@@ -115,6 +115,9 @@ export class Game {
       r.playing = true;
       r.playingIntro = false;
       r.tRex.playingIntro = false;
+      // The skipped intro animation walks the dino in to startXPos (trex.ts:322).
+      r.tRex.xPos = r.tRex.config.startXPos;
+      r.tRex.xInitialPos = r.tRex.config.startXPos;
       r.paused = false;
       r.crashed = false;
       r.runningTime = 0;
@@ -193,6 +196,18 @@ export class Game {
   /** Hash of the complete state (every serialized field). */
   fullHash(): number {
     return hashString(JSON.stringify(this.snapshot()));
+  }
+}
+
+// The Runner constructor only looks up its container element to remember it.
+// Hand it a detached placeholder so headless games never touch the page.
+function constructDetachedRunner(engine: Engine): any {
+  const doc = (globalThis as any).document;
+  Object.defineProperty(doc, 'querySelector', {value: () => ({}), configurable: true, writable: true});
+  try {
+    return new (engine.Runner as any)('#dino-headless');
+  } finally {
+    delete doc.querySelector;
   }
 }
 

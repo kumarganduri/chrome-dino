@@ -4,7 +4,11 @@
 //   src/engine/vendor-entry.ts ───────────┼─ esbuild ─► dist/engine.mjs      (Node, workers, tests)
 //                                         │           └► dist/engine.iife.js (browser: window.DinoEngine)
 //   chrome://resources/js/assert.js ──────┤  aliased to src/hook/stubs/assert.ts
-//   chrome://resources/js/load_time_data.js ┘ aliased to src/hook/stubs/load_time_data.ts
+//   chrome://resources/js/load_time_data.js ┤ aliased to src/hook/stubs/load_time_data.ts
+//   ./constants.js (from vendored modules) ┘ aliased to src/hook/pinned-constants.ts
+//                                             (Chrome's values, device flags pinned)
+//
+//   src/web/core.ts ─ esbuild ─► dist/core.js  (browser ESM: engine + Game + NEAT)
 //
 // The vendored files import siblings as './x.js'; we map those to the .ts files.
 import * as esbuild from 'esbuild';
@@ -32,6 +36,9 @@ const chromiumResolver = {
       if (!args.importer.includes(`${path.sep}vendor${path.sep}chromium-dino${path.sep}`)) {
         return undefined;
       }
+      if (args.path === './constants.js') {
+        return {path: path.join(root, 'src/hook/pinned-constants.ts')};
+      }
       if (args.path === '../constants.js') {
         return {path: path.join(root, 'vendor/chromium-dino/neterror_constants.ts')};
       }
@@ -57,6 +64,7 @@ export async function build() {
   await Promise.all([
     esbuild.build({...common, format: 'esm', platform: 'neutral', outfile: path.join(root, 'dist/engine.mjs')}),
     esbuild.build({...common, format: 'iife', globalName: 'DinoEngine', platform: 'browser', outfile: path.join(root, 'dist/engine.iife.js')}),
+    esbuild.build({...common, entryPoints: [path.join(root, 'src/web/core.ts')], format: 'esm', platform: 'browser', outfile: path.join(root, 'dist/core.js')}),
   ]);
 }
 

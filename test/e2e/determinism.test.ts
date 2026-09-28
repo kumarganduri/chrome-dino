@@ -64,6 +64,29 @@ for (const [name, type, opts] of [
   });
 }
 
+test('chrome: games in a page with the real requestAnimationFrame stay deterministic', async () => {
+  const browser = await chromium.launch({channel: 'chrome'});
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${url}/test/e2e/raf.html`);
+    await page.evaluate(() => (window as any).ready);
+    // Let real animation frames tick between our steps for a while.
+    const actual = await page.evaluate(async ([seeds, frames]) => {
+      const core = (window as any).core;
+      const out = [];
+      for (const s of seeds as number[]) {
+        const g = core.Game.create(core.engine, s);
+        await new Promise((r) => setTimeout(r, 120)); // real rAF callbacks would fire here
+        out.push(core.drive(core.engine, s, frames, g));
+      }
+      return out;
+    }, [SEEDS.slice(0, 5), FRAMES] as const);
+    compare(actual, 'real-rAF');
+  } finally {
+    await browser.close();
+  }
+});
+
 test('chrome: Runner.initializeInstance page init matches headless construction', async () => {
   const browser = await chromium.launch({channel: 'chrome'});
   try {

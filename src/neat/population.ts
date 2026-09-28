@@ -25,6 +25,7 @@ export interface NeatConfig {
   weightPerturbRate: number;
   weightPerturbSigma: number;
   weightRange: number;
+  weightClamp: number;
   addConnRate: number;
   addNodeRate: number;
   toggleRate: number;
@@ -42,11 +43,12 @@ export const DEFAULT_NEAT: NeatConfig = {
   c3: 0.4,
   threshold: 3,
   targetSpecies: [8, 12],
-  thresholdStep: 0.3,
+  thresholdStep: 0.1,
   weightMutateRate: 0.8,
   weightPerturbRate: 0.9,
   weightPerturbSigma: 0.5,
   weightRange: 2,
+  weightClamp: 30,
   addConnRate: 0.05,
   addNodeRate: 0.03,
   toggleRate: 0.01,
@@ -291,7 +293,7 @@ export class Population {
       for (const c of g.conns) {
         if (this.rng.next() < cfg.weightPerturbRate) {
           c.w += this.gaussian() * cfg.weightPerturbSigma;
-          c.w = Math.max(-8, Math.min(8, c.w));
+          c.w = Math.max(-cfg.weightClamp, Math.min(cfg.weightClamp, c.w));
         } else {
           c.w = this.randomWeight();
         }

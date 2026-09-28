@@ -54,6 +54,8 @@ export interface GraveEntry {
   caseId: string;
   seed?: number;
   genomeId: number;
+  genome?: Genome; // kept for the newest entries so the page can replay them
+  snapshot?: CrashRecord['snapshot'];
 }
 
 export interface HistoryRow {
@@ -110,17 +112,32 @@ async function evaluateSeeds(genome: Genome, seeds: number[], cap: number, recor
   return (await Promise.all(parts)).flatMap((r) => r[0]!);
 }
 
+// Fitness = mean fresh survival × (0.75 + 0.25 × curriculum survival).
+// Fresh episodes carry the learning signal; past crashes (curriculum) scale it
+// by up to 25%, so a hard case never zeroes out an otherwise good genome.
+// Promotion still requires every clearable case.
 function fitnessOf(results: EpisodeResult[], episodes: Episode[]): number {
-  let sum = 0;
-  let penalty = 1;
+  let fresh = 0;
+  let freshN = 0;
+  let cases = 0;
+  let casesN = 0;
   results.forEach((r, i) => {
-    sum += r.frames / episodes[i]!.cap;
-    if (episodes[i]!.kind === 'case' && !r.survived) penalty *= 0.5;
+    const share = r.frames / episodes[i]!.cap;
+    if (episodes[i]!.kind === 'fresh') {
+      fresh += share;
+      freshN++;
+    } else {
+      cases += share;
+      casesN++;
+    }
   });
-  return (sum / results.length) * penalty;
+  const f = freshN ? fresh / freshN : 0;
+  return casesN ? f * (0.75 + 0.25 * (cases / casesN)) : f;
 }
 
-function addCrash(crash: CrashRecord, source: CurriculumCase['source'], gen: number, genomeId: number, seed?: number): void {
+const GRAVE_REPLAYABLE = 150;
+
+function addCrash(crash: CrashRecord, source: CurriculumCase['source'], gen: number, genomeId: number, seed?: number, genome?: Genome): void {
   let c = curriculum.find((x) => x.signature === crash.signature);
   if (!c) {
     c = {id: `c${gen}-${curriculum.length}-${crash.signature.length}`, signature: crash.signature, source, gen,
@@ -132,8 +149,13 @@ function addCrash(crash: CrashRecord, source: CurriculumCase['source'], gen: num
       curriculum.splice(idx >= 0 ? idx : 0, 1);
     }
   }
-  graveyard.push({gen, frames: crash.frame, speed: crash.speed, obstacles: crash.obstacles, source, caseId: c.id, seed, genomeId});
+  graveyard.push({gen, frames: crash.frame, speed: crash.speed, obstacles: crash.obstacles, source, caseId: c.id, seed, genomeId,
+    genome, snapshot: crash.snapshot});
   if (graveyard.length > 2000) graveyard.splice(0, graveyard.length - 2000);
+  for (let i = 0; i < graveyard.length - GRAVE_REPLAYABLE; i++) {
+    delete graveyard[i]!.genome;
+    delete graveyard[i]!.snapshot;
+  }
 }
 
 function persist(): void {
@@ -151,7 +173,7 @@ async function gate(genome: Genome, gen: number, genomeId: number, seeds: number
   let passed = 0;
   results.forEach((r, i) => {
     if (r.survived) passed++;
-    else if (r.crash) addCrash(r.crash, 'gate', gen, genomeId, list[i]);
+    else if (r.crash) addCrash(r.crash, 'gate', gen, genomeId, list[i], genome);
   });
   return {passed, seeds};
 }
@@ -189,7 +211,7 @@ for (let n = 0; n < maxGens && !stop; n++) {
     const rec = (await evaluate([best.genome], crashed.map((i) => episodes[i]!), true))[0]!;
     rec.forEach((r, k) => {
       const ep = episodes[crashed[k]!]!;
-      if (r.crash && ep.kind === 'fresh') addCrash(r.crash, 'training', gen, best.id, ep.seed);
+      if (r.crash && ep.kind === 'fresh') addCrash(r.crash, 'training', gen, best.id, ep.seed, best.genome);
       if (r.crash && ep.kind === 'case') graveyard.push({gen, frames: r.crash.frame, speed: r.crash.speed, obstacles: r.crash.obstacles, source: 'curriculum', caseId: ep.id, genomeId: best.id});
     });
   }

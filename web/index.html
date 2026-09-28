@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dino.forever</title>
+<meta name="description" content="Chrome's real T-Rex game, playing itself live. A neural network evolved with NEAT learns from every crash until it never crashes.">
+<meta property="og:title" content="dino.forever — Chrome's dino that never crashes">
+<meta property="og:description" content="Watch it play live, watch 150 brains evolve in your tab, then try to kill it.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>dino<span class="brand-dot">.forever</span></a>
+  <p class="tagline">Chrome's real T-Rex game, learning live to never crash.</p>
+  <div class="live" id="live-pill" data-state="offline">
+    <span class="live-dot" aria-hidden="true"></span>
+    <span id="live-text">local</span>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-label="Champion playing live">
+    <div class="stage" id="champion-stage">
+      <canvas id="champion" width="600" height="150" aria-label="The champion brain playing Chrome's dino game"></canvas>
+      <div class="stage-tag" id="champion-tag">loading champion…</div>
+      <div class="stage-banner" id="crash-banner" role="status">Crashed. Recorded as a lesson. Restarting…</div>
+    </div>
+
+    <aside class="clock-card">
+      <p class="eyebrow">Time since last crash</p>
+      <p class="clock" id="clock">00:00:00</p>
+      <p class="proof" id="proof">Measuring…</p>
+      <dl class="stats">
+        <div><dt>Score</dt><dd id="stat-score">0</dd></div>
+        <div><dt>Speed</dt><dd id="stat-speed">6.00</dd></div>
+        <div><dt>Frame</dt><dd id="stat-frame">0</dd></div>
+      </dl>
+      <div class="actions">
+        <button class="btn primary" id="btn-attack" type="button">Try to kill it</button>
+        <button class="btn" id="btn-race" type="button">Race it</button>
+      </div>
+    </aside>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <header class="card-head">
+        <div>
+          <h2>Ghost swarm</h2>
+          <p class="sub">150 brains evolving in <em>your</em> tab, on the same track. Click a ghost to see its brain.</p>
+        </div>
+        <div class="seg" role="group" aria-label="Swarm speed" id="swarm-speed">
+          <button type="button" data-speed="1" aria-pressed="false">×1</button>
+          <button type="button" data-speed="4" aria-pressed="true">×4</button>
+          <button type="button" data-speed="16" aria-pressed="false">×16</button>
+        </div>
+      </header>
+      <div class="stage small"><canvas id="swarm" width="600" height="150" aria-label="Population of translucent dinos learning"></canvas></div>
+      <p class="caption" id="swarm-label">starting…</p>
+    </article>
+
+    <article class="card">
+      <header class="card-head">
+        <div>
+          <h2>Live brain</h2>
+          <p class="sub" id="brain-caption">What the champion sees, and what it decides, every frame.</p>
+        </div>
+        <div class="seg" role="group" aria-label="Brain source" id="brain-source">
+          <button type="button" data-src="champion" aria-pressed="true">Champion</button>
+          <button type="button" data-src="swarm" aria-pressed="false">Swarm</button>
+        </div>
+      </header>
+      <canvas class="brain" id="brain" aria-label="Neural network activations"></canvas>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <header class="card-head">
+        <div>
+          <h2>Training</h2>
+          <p class="sub">NEAT, headless, 10 CPU cores. 1.0 = survived every run to 10 minutes at top speed.</p>
+        </div>
+      </header>
+      <canvas class="chart" id="chart" aria-label="Best and mean fitness per generation"></canvas>
+      <p class="caption" id="chart-tip" hidden></p>
+      <dl class="stats wide" id="train-stats"></dl>
+    </article>
+
+    <article class="card">
+      <header class="card-head">
+        <div>
+          <h2>Global board</h2>
+          <p class="sub">Every entry re-played by the server before it counts.</p>
+        </div>
+      </header>
+      <div id="board" class="board"><p class="muted">Connecting…</p></div>
+    </article>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <h2>Crash black box</h2>
+        <p class="sub">Every crash is recorded 3 seconds before impact and becomes training data. Click one to replay it exactly.</p>
+      </div>
+    </header>
+    <div class="graves" id="graves"></div>
+    <div class="replay" hidden>
+      <div class="stage small"><canvas id="replay" width="600" height="150"></canvas></div>
+      <p class="caption" id="replay-caption"></p>
+    </div>
+  </section>
+
+  <section class="how" aria-labelledby="how-title">
+    <h2 id="how-title">How it works</h2>
+    <ol class="steps">
+      <li><b>The real game.</b> Chromium's own T-Rex runner source, pinned and unedited. Only its clock and dice are pinned, so any run replays exactly on any browser.</li>
+      <li><b>A tiny brain.</b> The dino sees 20 numbers (distance and time to the next obstacles, their shape, its own height, speed) and holds JUMP or DUCK. No ML framework: NEAT in a few hundred lines of TypeScript.</li>
+      <li><b>Crash → lesson.</b> Every crash is saved as a snapshot 3 s before impact. The curriculum replays those moments until the brain clears them.</li>
+      <li><b>Proof, not a claim.</b> A champion is promoted only after 500 fresh tracks × 30 minutes at top speed with zero crashes, plus every past crash.</li>
+    </ol>
+  </section>
+</main>
+
+<dialog class="play" id="play">
+  <form method="dialog" class="play-head">
+    <div>
+      <h2 id="play-title">Try to kill it</h2>
+      <p class="sub" id="play-help">Pick obstacles; each replaces Chrome's next spawn. Chrome still decides gaps and cluster size.</p>
+    </div>
+    <button class="btn ghost" value="close" aria-label="Close">✕</button>
+  </form>
+  <div class="stage"><canvas id="play-canvas" width="600" height="150"></canvas></div>
+  <div class="palette" id="palette">
+    <button type="button" class="btn" data-drop="cactusSmall">🌵 small cactus</button>
+    <button type="button" class="btn" data-drop="cactusLarge">🌵 large cactus</button>
+    <button type="button" class="btn" data-drop="pterodactyl" data-y="100">🦅 low bird</button>
+    <button type="button" class="btn" data-drop="pterodactyl" data-y="75">🦅 mid bird</button>
+    <button type="button" class="btn" data-drop="pterodactyl" data-y="50">🦅 high bird</button>
+  </div>
+  <p class="caption" id="play-status"></p>
+  <div class="handle-row">
+    <label for="handle">Your name on the board</label>
+    <input id="handle" maxlength="16" placeholder="anonymous" autocomplete="nickname">
+  </div>
+</dialog>
+
+<footer class="foot">
+  <p>Game: <a href="https://source.chromium.org/chromium/chromium/src/+/main:components/neterror/resources/dino_game/">Chromium T-Rex runner</a> © The Chromium Authors, BSD-3-Clause, vendored unedited at <code>644979367a</code>.</p>
+  <p><a href="https://gitlab.com/kumarganduri/chrome-dino" id="repo-link">Source on GitLab</a> · Built with NEAT, TypeScript and zero runtime dependencies.</p>
+</footer>
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

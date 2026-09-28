@@ -65,20 +65,25 @@ export class Game {
     this.snapCtx = buildSnapshotContext(engine, runner, surface);
   }
 
-  /** Headless game: null canvas, Chrome's Runner with a manual init. */
-  static create(engine: Engine, seed: number): Game {
+  /**
+   * A game driven by Chrome's Runner with a manual (DOM-free) init. Draws into
+   * `surface` when given (a real 600×150 canvas + the 1x sprite image), else
+   * into a no-op canvas.
+   */
+  static create(engine: Engine, seed: number, surface?: GameSurface): Game {
     const rng = new Rng(seed);
-    const canvas = createNullCanvas(600, 150);
-    const image = createNullImage();
+    const canvas: any = surface?.canvas ?? createNullCanvas(600, 150);
+    const image = surface?.image ?? createNullImage();
     let runner: any;
     const clock = {now: CLOCK_START};
     withGameGlobals(rng, clock, () => {
       runner = constructDetachedRunner(engine);
+      neutralizeScheduling(runner);
       runner.spriteDef = engine.spriteDefinitionByType.original.ldpi;
       runner.imageSprite = image;
       runner.origImageSprite = image;
       runner.canvas = canvas;
-      runner.canvasCtx = canvas.getContext();
+      runner.canvasCtx = canvas.getContext('2d');
       runner.horizon = new engine.Horizon(
           canvas as any, runner.spriteDef, runner.dimensions, runner.config.gapCoefficient, runner);
       runner.distanceMeter = new engine.DistanceMeter(
@@ -86,7 +91,17 @@ export class Game {
       runner.tRex = new engine.Trex(canvas as any, runner.spriteDef.tRex, runner);
       runner.update();
     });
-    // Headless crash: keep Chrome's state changes, skip the panel/DOM/sound.
+    // Night mode without touching the page: Runner.invert toggles a class on
+    // <html>; toggle(cls, force) returns force, so the state is identical.
+    runner.invert = function(this: any, reset: boolean) {
+      if (reset) {
+        this.invertTimer = 0;
+        this.inverted = false;
+      } else {
+        this.inverted = !!this.invertTrigger;
+      }
+    };
+    // Crash: keep Chrome's state changes, skip the panel/DOM/sound.
     runner.gameOver = function(this: any) {
       this.stop();
       this.crashed = true;
@@ -102,6 +117,7 @@ export class Game {
 
   /** Wrap an already-initialized Runner (the visible champion in a real page). */
   static adopt(engine: Engine, runner: any, rng: Rng, clock: GameClock, surface: GameSurface): Game {
+    neutralizeScheduling(runner);
     const game = new Game(engine, runner, rng, surface);
     game.clock.now = clock.now;
     game.startRun();
@@ -199,6 +215,19 @@ export class Game {
   }
 }
 
+// Runner.update() re-schedules itself with requestAnimationFrame. We are the
+// only clock: record the same state the scheduler would (updatePending, a
+// non-zero raqId, exactly as a stubbed rAF returning 1) but never schedule,
+// so the browser can't run extra updates on real time.
+function neutralizeScheduling(runner: any): void {
+  runner.scheduleNextUpdate = function(this: any) {
+    if (!this.updatePending) {
+      this.updatePending = true;
+      this.raqId = 1;
+    }
+  };
+}
+
 // The Runner constructor only looks up its container element to remember it.
 // Hand it a detached placeholder so headless games never touch the page.
 function constructDetachedRunner(engine: Engine): any {
@@ -224,7 +253,7 @@ function buildSnapshotContext(engine: Engine, runner: any, surface: GameSurface)
   }
   registerExtern(ctx, 'runner', runner);
   registerExtern(ctx, 'canvas', surface.canvas);
-  registerExtern(ctx, 'ctx', (surface.canvas as any).getContext('2d'));
+  registerExtern(ctx, 'ctx', runner.canvasCtx);
   registerExtern(ctx, 'image', surface.image);
   registerExtern(ctx, 'dimensions', runner.dimensions);
   registerExterns(ctx, 'config', runner.config);

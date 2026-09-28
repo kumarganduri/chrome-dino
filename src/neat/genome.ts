@@ -13,7 +13,7 @@ import {SENSE_SIZE} from '../hook/sense.ts';
 export const INPUTS = SENSE_SIZE + 1; // + bias
 export const OUTPUTS = 2;
 export const BIAS_ID = SENSE_SIZE;
-export const GENOME_FORMAT = 1;
+export const GENOME_FORMAT = 2; // v2: 20 senses (time-to-contact added)
 
 export type NodeKind = 'input' | 'output' | 'hidden';
 

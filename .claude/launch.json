@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {"name": "site", "runtimeExecutable": "node", "runtimeArgs": ["scripts/preview.ts", "4173"], "port": 4173}
+  ]
+}

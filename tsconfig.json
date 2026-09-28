@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": false,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "chrome://resources/js/assert.js": ["./src/hook/stubs/assert.ts"],
+      "chrome://resources/js/load_time_data.js": ["./src/hook/stubs/load_time_data.ts"]
+    }
+  },
+  "include": ["src", "web", "server", "trainer", "test", "scripts/*.ts", "src/hook/chrome-globals.d.ts"]
+}

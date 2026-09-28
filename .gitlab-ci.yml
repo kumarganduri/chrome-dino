@@ -22,6 +22,7 @@ default:
 test:
   stage: test
   script:
+    - node scripts/typecheck.mjs
     - node build.mjs
     - node --test test/*.test.ts test/e2e/server-http.test.ts
 

@@ -29,10 +29,10 @@ export class Pool {
         this.idle.push(w);
         this.pump();
       });
-      w.on('error', (e) => {
+      w.on('error', (e: unknown) => {
         const job = this.busy.get(w);
         this.busy.delete(w);
-        job?.reject(e);
+        job?.reject(e instanceof Error ? e : new Error(String(e)));
       });
       this.workers.push(w);
       this.idle.push(w);

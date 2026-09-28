@@ -14,10 +14,18 @@
     "test:e2e": "node build.mjs && node --test test/e2e/*.test.ts",
     "oracle": "node build.mjs && node trainer/oracle-sweep.ts",
     "train": "node build.mjs && node trainer/train.ts",
-    "bench": "node build.mjs && node trainer/bench.ts"
+    "bench": "node build.mjs && node trainer/bench.ts",
+    "typecheck": "node scripts/typecheck.mjs",
+    "preview": "node build.mjs && node scripts/preview.ts",
+    "publish-data": "node trainer/publish.ts",
+    "sync": "node trainer/sync.ts",
+    "server": "node build.mjs && node server/main.ts",
+    "real-chrome": "node scripts/real-chrome.mjs"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "esbuild": "^0.28.2",
-    "playwright": "^1.63.0"
+    "playwright": "^1.63.0",
+    "typescript": "^7.0.2"
   }
 }

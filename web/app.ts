@@ -22,7 +22,7 @@ interface PublishedChampion {
   version: number;
   gen: number;
   genome: Genome;
-  gate: {seeds: number; passed: number; framesPerSeed: number} | null;
+  gate: {seeds: number; passed: number; framesPerSeed: number; heldOutSeeds?: number; heldOutPassed?: number} | null;
 }
 interface PublishedStats {
   generations: number;
@@ -31,6 +31,7 @@ interface PublishedStats {
   championVersion: number | null;
   publishedAt: string;
   oracle?: {seeds: number; survived: number; gameHoursPerSeed: number} | null;
+  validation?: {seeds: number; survived: number; minutes: number; gameHours: number; crashes: number} | null;
 }
 
 async function json<T>(url: string): Promise<T | null> {
@@ -70,14 +71,24 @@ async function main() {
   const tag = $('#champion-tag');
   const proof = $('#proof');
   const setProof = () => {
+    const lines: string[] = [];
     if (champion?.gate) {
-      proof.innerHTML = `<b>✓ proven</b>: ${formatInt(champion.gate.passed)}/${formatInt(champion.gate.seeds)} fresh tracks × 30 min at top speed, zero crashes`;
+      lines.push(`<b>✓ gate</b>: ${formatInt(champion.gate.passed)}/${formatInt(champion.gate.seeds)} tracks × 30 min at top speed, zero crashes`);
+      if (champion.gate.heldOutSeeds) {
+        lines.push(`<b>✓ held-out</b>: ${formatInt(champion.gate.heldOutPassed ?? 0)}/${formatInt(champion.gate.heldOutSeeds)} unseen tracks × 60 min`);
+      }
     } else if (current) {
-      proof.textContent = 'Still training; not yet gate-proven.';
+      lines.push('Still training; not yet gate-proven.');
+    }
+    const v = stats?.validation;
+    if (v) {
+      lines.push(`<span class="muted">Validation: ${formatInt(v.survived)}/${formatInt(v.seeds)} unseen tracks × ${v.minutes / 60} h ` +
+        `(${formatInt(v.gameHours)} game-hours, ${v.crashes} crash${v.crashes === 1 ? '' : 'es'}).</span>`);
     }
     if (stats?.oracle) {
-      proof.innerHTML += `<br><span class="muted">Feasibility: a lookahead oracle survived ${stats.oracle.survived}/${stats.oracle.seeds} tracks × ${stats.oracle.gameHoursPerSeed.toFixed(1)} h.</span>`;
+      lines.push(`<span class="muted">Forever is possible: a lookahead oracle survived ${stats.oracle.survived}/${stats.oracle.seeds} tracks × ${stats.oracle.gameHoursPerSeed.toFixed(1)} h.</span>`);
     }
+    proof.innerHTML = lines.join('<br>');
   };
   setProof();
 

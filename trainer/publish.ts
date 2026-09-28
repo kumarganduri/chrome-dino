@@ -21,6 +21,7 @@ const history = readJson<any[]>(from('history.json'), []);
 const graveyard = readJson<any[]>(from('graveyard.json'), []);
 const curriculum = readJson<any[]>(from('curriculum.json'), []);
 const oracle = readJson<any>('out/oracle-sweep.json', null);
+const validation = readJson<any>('out/validation.json', null);
 
 writeJsonAtomic(to('champion.json'), champion); // null until a brain passes the gate
 if (leader) writeJsonAtomic(to('leader.json'), leader);
@@ -40,6 +41,10 @@ writeJsonAtomic(to('stats.json'), {
   championVersion: champion?.version ?? null,
   publishedAt: new Date().toISOString(),
   oracle: oracle ? {seeds: oracle.summary.seeds, survived: oracle.summary.survived, gameHoursPerSeed: oracle.summary.gameHoursPerSeed} : null,
+  // Held-out validation of the published champion (trainer/validate.ts), only if it matches.
+  validation: validation && champion && validation.version === champion.version ?
+    {seeds: validation.seeds, survived: validation.survived, minutes: validation.minutesAtTopSpeed,
+      gameHours: Math.round(validation.gameHours), crashes: validation.crashes.length} : null,
 });
 console.log(`published: champion ${champion ? 'v' + champion.version : 'none'}, leader gen ${leader?.gen ?? '-'}, ` +
   `${thin.length} history rows, ${replayable.length} graves`);

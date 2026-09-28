@@ -278,7 +278,12 @@ for (let n = 0; n < maxGens && !stop; n++) {
   if (!leader || fitness[bestIdx]! >= leader.fitness) leader = {gen, fitness: fitness[bestIdx]!, genome: best.genome};
 
   let gateTried = false;
-  if (bestResults.every((r) => r.survived)) {
+  // Try the gate once every fresh track survives and ≥ 90% of this
+  // generation's lessons do; promotion still demands every clearable lesson.
+  const freshOk = bestResults.every((r, i) => episodes[i]!.kind !== 'fresh' || r.survived);
+  const caseRes = bestResults.filter((_, i) => episodes[i]!.kind === 'case');
+  const caseShare = caseRes.length ? caseRes.filter((r) => r.survived).length / caseRes.length : 1;
+  if (freshOk && caseShare >= 0.9) {
     gateTried = true;
     const quick = await gate(best.genome, gen, best.id, Number(args['quick-gate-seeds']));
     framesSimulated += quick.passed * GATE_CAP;

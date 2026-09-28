@@ -13,6 +13,8 @@ import {drive, type DriveResult} from '../../src/engine/testdrive.ts';
 const SEEDS = Array.from({length: Number(process.env.DET_SEEDS ?? 60)}, (_, i) => 500 + i * 7);
 const FRAMES = Number(process.env.DET_FRAMES ?? 20_000);
 const root = path.resolve(import.meta.dirname, '../..');
+// Local runs use the installed Google Chrome; CI uses Playwright's bundled Chromium.
+const CHROME = process.env.PW_CHROME_CHANNEL === 'bundled' ? {} : {channel: process.env.PW_CHROME_CHANNEL ?? 'chrome'};
 let url = '';
 let close: () => void = () => {};
 
@@ -45,7 +47,7 @@ test('workload is non-trivial (long runs, jumps, ducks, fast-falls)', () => {
 });
 
 for (const [name, type, opts] of [
-  ['chrome', chromium, {channel: 'chrome'}],
+  ['chrome', chromium, CHROME],
   ['firefox', firefox, {}],
   ['webkit', webkit, {}],
 ] as const) {
@@ -65,7 +67,7 @@ for (const [name, type, opts] of [
 }
 
 test('chrome: games in a page with the real requestAnimationFrame stay deterministic', async () => {
-  const browser = await chromium.launch({channel: 'chrome'});
+  const browser = await chromium.launch(CHROME);
   try {
     const page = await browser.newPage();
     await page.goto(`${url}/test/e2e/raf.html`);
@@ -106,7 +108,7 @@ test('chrome: games in a page with the real requestAnimationFrame stay determini
 });
 
 test('chrome: Runner.initializeInstance page init matches headless construction', async () => {
-  const browser = await chromium.launch({channel: 'chrome'});
+  const browser = await chromium.launch(CHROME);
   try {
     for (const seed of SEEDS.slice(0, 10)) {
       const page = await browser.newPage();

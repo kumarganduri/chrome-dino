@@ -1,0 +1,60 @@
+# dino.forever CI
+#
+#   test         unit tests (engine, NEAT, attack, server verification, vendor hashes)
+#   determinism  Node vs Chromium vs Firefox vs WebKit, identical per-frame hashes
+#                (runs on the default branch and on MRs touching the engine)
+#   pages        builds the site into public/ → https://kumarganduri.gitlab.io/chrome-dino
+#   deploy       builds and deploys the live server to Fly (needs FLY_API_TOKEN)
+#
+# CI/CD variables (Settings → CI/CD → Variables):
+#   DINO_API       https://dino-forever-kumar.fly.dev   (page connects to the live server)
+#   FLY_API_TOKEN  masked, from `fly tokens create deploy -a dino-forever-kumar`
+stages: [test, build, deploy]
+
+default:
+  image: node:26-slim
+  cache:
+    key: {files: [package-lock.json]}
+    paths: [.npm/]
+  before_script:
+    - npm ci --cache .npm --prefer-offline --no-audit --no-fund
+
+test:
+  stage: test
+  script:
+    - node build.mjs
+    - node --test test/*.test.ts test/e2e/server-http.test.ts
+
+determinism:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.63.0-noble
+  variables:
+    PW_CHROME_CHANNEL: bundled
+    DET_SEEDS: "30"
+  script:
+    - node --version
+    - node build.mjs
+    - node --test test/e2e/determinism.test.ts
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: [vendor/**/*, src/hook/**/*, src/engine/**/*, src/neat/**/*]
+
+pages:
+  stage: build
+  script:
+    - node build.mjs
+  artifacts:
+    paths: [public]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+deploy:
+  stage: deploy
+  image: flyio/flyctl:latest
+  before_script: []
+  script:
+    - flyctl deploy --remote-only --app dino-forever-kumar
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $FLY_API_TOKEN
+  resource_group: fly

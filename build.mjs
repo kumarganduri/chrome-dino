@@ -14,7 +14,7 @@
 //
 // The vendored files import siblings as './x.js'; we map those to the .ts files.
 import * as esbuild from 'esbuild';
-import {cpSync, existsSync, mkdirSync} from 'node:fs';
+import {cpSync, existsSync, mkdirSync, writeFileSync} from 'node:fs';
 import path from 'node:path';
 
 const root = path.dirname(new URL(import.meta.url).pathname);
@@ -66,7 +66,12 @@ function copySite() {
   const pub = path.join(root, 'public');
   mkdirSync(path.join(pub, 'sprites'), {recursive: true});
   for (const f of ['index.html', 'style.css', 'favicon.svg']) cpSync(path.join(root, 'web', f), path.join(pub, f));
-  if (existsSync(path.join(root, 'web/config.js'))) cpSync(path.join(root, 'web/config.js'), path.join(pub, 'config.js'));
+  // DINO_API (CI variable) points the published page at the live server.
+  if (process.env.DINO_API) {
+    writeFileSync(path.join(pub, 'config.js'), `window.DINO_API = ${JSON.stringify(process.env.DINO_API)};\n`);
+  } else {
+    cpSync(path.join(root, 'web/config.js'), path.join(pub, 'config.js'));
+  }
   if (existsSync(path.join(root, 'web/data'))) cpSync(path.join(root, 'web/data'), path.join(pub, 'data'), {recursive: true});
   cpSync(path.join(root, 'vendor/chromium-dino/images/100-offline-sprite.png'), path.join(pub, 'sprites/100-offline-sprite.png'));
   cpSync(path.join(root, 'vendor/chromium-dino/LICENSE'), path.join(pub, 'CHROMIUM-LICENSE.txt'));
@@ -80,6 +85,7 @@ export async function build() {
     esbuild.build({...common, format: 'esm', platform: 'neutral', outfile: path.join(root, 'dist/engine.mjs')}),
     esbuild.build({...common, format: 'iife', globalName: 'DinoEngine', platform: 'browser', outfile: path.join(root, 'dist/engine.iife.js')}),
     esbuild.build({...common, entryPoints: [path.join(root, 'src/web/core.ts')], format: 'esm', platform: 'browser', outfile: path.join(root, 'dist/core.js')}),
+    esbuild.build({...common, entryPoints: [path.join(root, 'src/web/inject.ts')], format: 'iife', globalName: 'DinoForever', platform: 'browser', outfile: path.join(root, 'dist/inject.js')}),
   ]);
 }
 

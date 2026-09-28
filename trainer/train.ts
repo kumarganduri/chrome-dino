@@ -187,10 +187,28 @@ process.on('SIGINT', () => {
   console.log('\nstopping after this generation (Ctrl-C again to abort)…');
 });
 
+// Lessons pulled from the live server (trainer/sync.ts): live-run crashes and
+// verified visitor kills join the curriculum like training crashes.
+function mergeInbox(gen: number): void {
+  const inbox = readJson<any[]>(file('inbox.json'), []);
+  if (!inbox.length) return;
+  for (const l of inbox) {
+    const signature = `server:${l.kind}:${l.id}`;
+    if (curriculum.some((c) => c.signature === signature)) continue;
+    curriculum.push({id: `s${l.id}`, signature, source: l.kind === 'attack' ? 'attack' : 'live', gen,
+      obstacles: l.obstacles ?? '', speed: l.speed ?? 13, snapshot: l.snapshot});
+    graveyard.push({gen, frames: l.frames ?? 0, speed: l.speed ?? 13, obstacles: l.obstacles ?? '',
+      source: l.kind === 'attack' ? `killed by ${l.name}` : 'live run', caseId: `s${l.id}`, genomeId: -1});
+  }
+  writeJsonAtomic(file('inbox.json'), []);
+  console.log(`  merged ${inbox.length} server lesson(s) into the curriculum`);
+}
+
 const maxGens = Number(args.gens);
 for (let n = 0; n < maxGens && !stop; n++) {
   const t0 = performance.now();
   const gen = pop.generation;
+  mergeInbox(gen);
   const episodes: Episode[] = [];
   for (let i = 0; i < FRESH_PER_GEN; i++) episodes.push({kind: 'fresh', seed: (seedRng.next() * 2 ** 31) >>> 0, cap: TRAIN_CAP});
   // Curriculum sample, weighted toward the lessons that still kill good

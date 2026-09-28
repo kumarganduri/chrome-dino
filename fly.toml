@@ -1,0 +1,33 @@
+# dino.forever live server: one machine, never auto-stopped (the live run
+# must keep running), SQLite on a volume.
+app = "dino-forever-kumar"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DATA_DIR = "/data"
+  ALLOWED_ORIGINS = "https://kumarganduri.gitlab.io,https://dino-forever-kumar.fly.dev"
+
+[[mounts]]
+  source = "dino_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

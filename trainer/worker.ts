@@ -38,6 +38,15 @@ parentPort!.on('message', (task: any) => {
       case 'oracle':
         value = oracleRun(task.seed, task.frames);
         break;
+      case 'clearable': {
+        // Can the lookahead oracle survive this lesson (600 frames from its snapshot)?
+        const g = Game.create(engine, 0);
+        g.restore(task.snapshot);
+        const end = g.frame + 600;
+        while (g.frame < end && g.step(plannerKeys(g))) {}
+        value = !g.crashed;
+        break;
+      }
       case 'eval':
         value = handleEval(engine, task as EvalTask);
         break;

@@ -44,6 +44,7 @@ export interface CurriculumCase {
   speed: number;
   snapshot: CrashRecord['snapshot'];
   clearedBy?: number; // champion version that first passed it
+  unclearable?: boolean; // the lookahead oracle cannot survive it either
 }
 
 export interface GraveEntry {
@@ -289,13 +290,25 @@ for (let n = 0; n < maxGens && !stop; n++) {
       blocking = [...new Set([...blocking, ...full.failedCases])];
       if (full.passed === full.seeds) {
         // Must also clear every clearable curriculum case.
-        const cases: Episode[] = curriculum.map((c) => ({kind: 'case', id: c.id, snapshot: c.snapshot, cap: CASE_CAP}));
+        const lessons = curriculum.filter((c) => !c.unclearable);
+        const cases: Episode[] = lessons.map((c) => ({kind: 'case', id: c.id, snapshot: c.snapshot, cap: CASE_CAP}));
         const caseRes = cases.length ? (await evaluate([best.genome], cases))[0]! : [];
         const version = (champion?.version ?? 0) + 1;
-        const failures = caseRes.filter((r) => !r.survived).length;
-        console.log(`  gen ${gen}: curriculum ${caseRes.length - failures}/${caseRes.length}`);
+        const failed = lessons.filter((_, i) => !caseRes[i]!.survived);
+        // Only clearable lessons block promotion: judge each failure with the oracle.
+        const verdicts = await Promise.all(failed.map((c) => pool.run<boolean>({kind: 'clearable', snapshot: c.snapshot})));
+        failed.forEach((c, i) => {
+          if (!verdicts[i]) c.unclearable = true;
+        });
+        const blockers = failed.filter((c) => !c.unclearable);
+        const failures = blockers.length;
+        console.log(`  gen ${gen}: curriculum ${caseRes.length - failed.length}/${caseRes.length}` +
+          (failed.length ? ` (${failed.length - blockers.length} unclearable, ${blockers.length} blocking)` : ''));
+        blocking = [...new Set([...blocking, ...blockers.map((c) => c.id)])];
         if (failures === 0) {
-          caseRes.forEach((_, i) => (curriculum[i]!.clearedBy ??= version));
+          lessons.forEach((c, i) => {
+            if (caseRes[i]!.survived) c.clearedBy ??= version;
+          });
           champion = {version, gen, genomeId: best.id, fitness: fitness[bestIdx]!, genome: best.genome,
             gate: {seeds: full.seeds, passed: full.passed, framesPerSeed: GATE_CAP, firstSeed: GATE_SEED_BASE},
             promotedAt: new Date().toISOString()};

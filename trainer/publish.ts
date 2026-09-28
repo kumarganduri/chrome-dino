@@ -33,6 +33,12 @@ writeJsonAtomic(to('history.json'), thin);
 
 const replayable = graveyard.filter((g) => g.snapshot && g.genome).slice(-60);
 writeJsonAtomic(to('graveyard.json'), replayable);
+// Latest lessons (curriculum): the champion can replay each one to show how
+// it handles a past crash now; with the crashing genome, the original too.
+const lessons = curriculum.slice().sort((a, b) => b.gen - a.gen).slice(0, 60)
+    .map((c) => ({id: c.id, gen: c.gen, source: c.source, speed: c.speed, obstacles: c.obstacles, snapshot: c.snapshot,
+      genome: c.genome ?? null, unclearable: !!c.unclearable}));
+writeJsonAtomic(to('lessons.json'), lessons);
 
 writeJsonAtomic(to('stats.json'), {
   generations: history.length ? history.at(-1).gen + 1 : 0,
@@ -47,4 +53,4 @@ writeJsonAtomic(to('stats.json'), {
       gameHours: Math.round(validation.gameHours), crashes: validation.crashes.length} : null,
 });
 console.log(`published: champion ${champion ? 'v' + champion.version : 'none'}, leader gen ${leader?.gen ?? '-'}, ` +
-  `${thin.length} history rows, ${replayable.length} graves`);
+  `${thin.length} history rows, ${replayable.length} graves, ${lessons.length} lessons`);

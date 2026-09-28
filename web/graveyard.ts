@@ -14,6 +14,8 @@ export interface Grave {
   score?: number;
   snapshot?: Snapshot;
   genome?: Genome;
+  /** Replaying a past lesson with today's champion instead of the brain that crashed. */
+  replayedBy?: string;
 }
 
 const ICON: Record<string, string> = {cactusSmall: '🌵', cactusLarge: '🌵', pterodactyl: '🦅'};
@@ -34,7 +36,7 @@ export class Graveyard {
   private readonly replayCaption: HTMLElement;
   private readonly sprite: HTMLImageElement;
   private graves: Grave[] = [];
-  private replay: {game: Game; policy: BrainPolicy; end: number} | null = null;
+  private replay: {game: Game; policy: BrainPolicy; end: number; grave: Grave; reported: boolean} | null = null;
   private readonly loop: FixedLoop;
 
   constructor(list: HTMLElement, replayCanvas: HTMLCanvasElement, caption: HTMLElement, sprite: HTMLImageElement) {
@@ -75,15 +77,25 @@ export class Graveyard {
     if (!g.snapshot || !g.genome) return;
     const game = Game.create(engine, 0);
     game.restore(g.snapshot);
-    this.replay = {game, policy: new BrainPolicy(new Network(g.genome)), end: game.frame + 600};
-    this.replayCaption.textContent = `${g.title} · replaying the 3 s before impact at ½ speed · ${g.obstacles.replace(/@\d+/g, '')}`;
+    this.replay = {game, policy: new BrainPolicy(new Network(g.genome)), end: game.frame + 600, grave: g, reported: false};
+    this.replayCaption.textContent = g.replayedBy ?
+      `${g.title} · ${g.replayedBy} replays this past crash, from 3 s before impact, at ½ speed…` :
+      `${g.title} · replaying the 3 s before impact at ½ speed · ${g.obstacles.replace(/@\d+/g, '')}`;
     this.replayCanvas.closest('.replay')?.removeAttribute('hidden');
   }
 
   private step(): boolean {
     const r = this.replay;
     if (!r) return true;
-    if (r.game.crashed || r.game.frame > r.end) return true;
+    if (r.game.crashed || r.game.frame > r.end) {
+      if (!r.reported && r.grave.replayedBy) {
+        r.reported = true;
+        this.replayCaption.textContent = r.game.crashed ?
+          `${r.grave.title} · ${r.grave.replayedBy} still crashes here: this lesson is in training.` :
+          `${r.grave.title} · ✓ ${r.grave.replayedBy} clears this past crash now.`;
+      }
+      return true;
+    }
     r.game.step(r.policy.keys(r.game.runner));
     return true;
   }

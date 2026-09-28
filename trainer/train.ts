@@ -44,6 +44,7 @@ export interface CurriculumCase {
   obstacles: string;
   speed: number;
   snapshot: CrashRecord['snapshot'];
+  genome?: Genome; // the brain that crashed here (replays the original crash)
   clearedBy?: number; // champion version that first passed it
   unclearable?: boolean; // the lookahead oracle cannot survive it either
 }
@@ -151,11 +152,12 @@ function addCrash(crash: CrashRecord, source: CurriculumCase['source'], gen: num
     // Same killer again: keep the lesson current. The snapshot is the state
     // today's genomes actually reach, not the one an ancestor reached.
     c.snapshot = crash.snapshot;
+    c.genome = genome;
     c.gen = gen;
     delete c.clearedBy;
   } else {
     c = {id: `c${gen}-${curriculum.length}-${crash.signature.length}`, signature: crash.signature, source, gen,
-      obstacles: crash.obstacles, speed: crash.speed, snapshot: crash.snapshot};
+      obstacles: crash.obstacles, speed: crash.speed, snapshot: crash.snapshot, genome};
     curriculum.push(c);
     if (curriculum.length > CURRICULUM_MAX) {
       // Drop the oldest case the current champion already clears.
@@ -272,7 +274,6 @@ for (let n = 0; n < maxGens && !stop; n++) {
     rec.forEach((r, k) => {
       const ep = episodes[crashed[k]!]!;
       if (r.crash && ep.kind === 'fresh') addCrash(r.crash, 'training', gen, best.id, ep.seed, best.genome);
-      if (r.crash && ep.kind === 'case') graveyard.push({gen, frames: r.crash.frame, speed: r.crash.speed, obstacles: r.crash.obstacles, source: 'curriculum', caseId: ep.id, genomeId: best.id});
     });
   }
   if (!leader || fitness[bestIdx]! >= leader.fitness) leader = {gen, fitness: fitness[bestIdx]!, genome: best.genome};

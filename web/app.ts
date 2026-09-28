@@ -50,13 +50,14 @@ function setPressed(group: HTMLElement, btn: HTMLElement) {
 const localRecords = {longest: 0, kills: [] as BoardRow[], humans: [] as BoardRow[]};
 
 async function main() {
-  const [sprite, champion, leader, history, graves, stats] = await Promise.all([
+  const [sprite, champion, leader, history, graves, stats, lessons] = await Promise.all([
     loadImage(SPRITE_URL),
     json<PublishedChampion>('data/champion.json'),
     json<{gen: number; genome: Genome}>('data/leader.json'),
     json<ChartRow[]>('data/history.json'),
     json<any[]>('data/graveyard.json'),
     json<PublishedStats>('data/stats.json'),
+    json<any[]>('data/lessons.json'),
   ]);
 
   const champInfo = (): ChampionInfo | null => {
@@ -107,6 +108,20 @@ async function main() {
       source: g.source === 'gate' ? 'gate' : 'training',
       obstacles: g.obstacles, speed: g.speed, snapshot: g.snapshot, genome: g.genome,
     }, false);
+  }
+
+  // Past crashes (the curriculum), replayed with today's champion. Lessons from
+  // before its promotion are ones it had to clear; newer ones are still in training.
+  if (current) {
+    const championGen = champion?.gen ?? Infinity;
+    const list = (lessons ?? []).filter((x) => !x.unclearable)
+        .sort((a, b) => Number(a.gen > championGen) - Number(b.gen > championGen) || b.gen - a.gen).slice(0, 40);
+    for (const l of list) {
+      const learned = l.gen <= championGen;
+      graveyard.add({id: `lesson-${l.id}`, title: `${learned ? 'lesson' : 'new lesson'} · gen ${l.gen}`,
+        source: l.source === 'gate' ? 'gate' : 'training', obstacles: l.obstacles, speed: l.speed, snapshot: l.snapshot,
+        genome: current.genome, replayedBy: current.label}, false);
+    }
   }
 
   let crashCount = 0;

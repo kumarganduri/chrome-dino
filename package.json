@@ -1,0 +1,23 @@
+{
+  "name": "chrome-dino-forever",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome's real T-Rex runner, learning live with NEAT to never crash.",
+  "type": "module",
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node build.mjs && node --test test/*.test.ts",
+    "test:e2e": "node build.mjs && node --test test/e2e/*.test.ts",
+    "oracle": "node build.mjs && node trainer/oracle-sweep.ts",
+    "train": "node build.mjs && node trainer/train.ts",
+    "bench": "node build.mjs && node trainer/bench.ts"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright": "^1.63.0"
+  }
+}

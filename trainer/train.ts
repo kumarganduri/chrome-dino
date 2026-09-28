@@ -17,7 +17,7 @@ import {Population, DEFAULT_NEAT, type PopulationState} from '../src/neat/popula
 import type {Genome} from '../src/neat/genome.ts';
 import {Rng} from '../src/hook/rng.ts';
 import {readJson, writeJsonAtomic} from './store.ts';
-import {CASE_CAP, GATE_CAP, GATE_SEED_BASE, TRAIN_CAP, type CrashRecord, type Episode, type EpisodeResult} from './episodes.ts';
+import {CASE_CAP, GATE_CAP, GATE_SEED_BASE, RAMP_FRAMES, TRAIN_CAP, type CrashRecord, type Episode, type EpisodeResult} from './episodes.ts';
 
 const {values: args} = parseArgs({
   options: {
@@ -34,6 +34,7 @@ const FRESH_PER_GEN = 5;
 const CASES_PER_GEN = 3;
 const CASES_WHEN_SATURATED = 12; // once fresh runs stop discriminating
 const CURRICULUM_MAX = 500;
+const HELD_OUT_SEEDS = 1000;
 
 export interface CurriculumCase {
   id: string;
@@ -80,7 +81,8 @@ export interface Champion {
   genomeId: number;
   fitness: number;
   genome: Genome;
-  gate: {seeds: number; passed: number; framesPerSeed: number; firstSeed: number} | null;
+  gate: {seeds: number; passed: number; framesPerSeed: number; firstSeed: number;
+    heldOutSeeds?: number; heldOutPassed?: number; heldOutMinutes?: number} | null;
   promotedAt: string;
 }
 
@@ -304,12 +306,30 @@ for (let n = 0; n < maxGens && !stop; n++) {
         console.log(`  gen ${gen}: curriculum ${caseRes.length - failed.length}/${caseRes.length}` +
           (failed.length ? ` (${failed.length - blockers.length} unclearable, ${blockers.length} blocking)` : ''));
         blocking = [...new Set([...blocking, ...blockers.map((c) => c.id)])];
+        // Stage 3: held-out endurance on 1,000 never-reused tracks × 60 min.
+        // Seeds come from a fresh range per candidate, so they were never
+        // trained on or selected against.
+        let heldOut = {passed: 0, seeds: 0};
         if (failures === 0) {
+          const base = 3_000_000_000 + Math.floor(seedRng.next() * 1_000_000_000);
+          const seeds = Array.from({length: HELD_OUT_SEEDS}, (_, i) => (base + i * 7919) >>> 0);
+          const res = await evaluateSeeds(best.genome, seeds, RAMP_FRAMES + 60 * 60 * 60, true);
+          const killers: string[] = [];
+          res.forEach((r, i) => {
+            if (r.survived) heldOut.passed++;
+            else if (r.crash) killers.push(addCrash(r.crash, 'gate', gen, best.id, seeds[i], best.genome));
+          });
+          heldOut.seeds = seeds.length;
+          blocking = [...new Set([...blocking, ...killers])];
+          console.log(`  gen ${gen}: held-out ${heldOut.passed}/${heldOut.seeds} × 60 min`);
+        }
+        if (failures === 0 && heldOut.passed === heldOut.seeds) {
           lessons.forEach((c, i) => {
             if (caseRes[i]!.survived) c.clearedBy ??= version;
           });
           champion = {version, gen, genomeId: best.id, fitness: fitness[bestIdx]!, genome: best.genome,
-            gate: {seeds: full.seeds, passed: full.passed, framesPerSeed: GATE_CAP, firstSeed: GATE_SEED_BASE},
+            gate: {seeds: full.seeds, passed: full.passed, framesPerSeed: GATE_CAP, firstSeed: GATE_SEED_BASE,
+              heldOutSeeds: heldOut.seeds, heldOutPassed: heldOut.passed, heldOutMinutes: 60},
             promotedAt: new Date().toISOString()};
           console.log(`  ★ champion v${version} promoted (gen ${gen})`);
           blocking = [];

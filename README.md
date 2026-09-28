@@ -21,7 +21,7 @@
 | **Every past crash** (360 lessons, 3 s before impact) | **360 / 360** cleared |
 | **Held-out validation**: 2,000 unseen tracks × 3 h at top speed | **2,000 / 2,000**, 6,065 game-hours, zero crashes |
 | **Is forever even possible?** Lookahead oracle, 200 tracks × 4.6 h | **200 / 200**, no unclearable obstacle sequence found |
-| **Literal chrome://dino** in Google Chrome 154, real time and real randomness | 5 min, zero crashes, score 5,553 (live demo, not replayable) |
+| **Literal chrome://dino** in Google Chrome 154, real time and real randomness | 20 min, zero crashes, score 23,108 (live demo, not replayable) |
 | **Determinism**: Node vs Chrome vs Firefox vs WebKit | identical per-frame state, sense and key hashes |
 
 Honest notes:

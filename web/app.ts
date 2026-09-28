@@ -243,7 +243,7 @@ async function main() {
         const spec = {seed: s.run.seed, startWall: live.toLocal(s.run.startWall), checkpoint: s.run.checkpoint};
         if (!view.game) view.start(current, spec);
         else view.begin(spec);
-        view.nextSeed = () => ({seed: randomSeed(), startWall: Date.now()}); // server will announce the next run
+        view.autoRestart = false; // the server announces the next run
       }
       liveBoard = s.board;
       liveCounters = s.stats;

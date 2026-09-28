@@ -219,12 +219,23 @@ export class Game {
 // only clock: record the same state the scheduler would (updatePending, a
 // non-zero raqId, exactly as a stubbed rAF returning 1) but never schedule,
 // so the browser can't run extra updates on real time.
+//
+// Runner.stop() likewise calls cancelAnimationFrame(this.raqId): with our fake
+// id that would cancel whatever real frame callback owns id 1 in the page. Our
+// stop() makes the same state changes (offline.ts:1414) without touching the
+// browser's frame queue.
 function neutralizeScheduling(runner: any): void {
   runner.scheduleNextUpdate = function(this: any) {
     if (!this.updatePending) {
       this.updatePending = true;
       this.raqId = 1;
     }
+  };
+  runner.stop = function(this: any) {
+    this.setPlayStatus(false);
+    this.paused = true;
+    this.raqId = 0;
+    if (this.hasAudioCuesInternal) this.getGeneratedSoundFx().stopAll();
   };
 }
 

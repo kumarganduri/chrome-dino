@@ -82,6 +82,24 @@ test('chrome: games in a page with the real requestAnimationFrame stay determini
       return out;
     }, [SEEDS.slice(0, 5), FRAMES] as const);
     compare(actual, 'real-rAF');
+    // A crashing game must not cancel the page's own animation frames.
+    const survived = await page.evaluate(async () => {
+      const core = (window as any).core;
+      let ticks = 0;
+      const tick = () => {
+        ticks++;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      for (let i = 0; i < 20; i++) {
+        const g = core.Game.create(core.engine, 900 + i);
+        while (g.step()) {} // no input: crashes into the first cactus
+      }
+      const before = ticks;
+      await new Promise((r) => setTimeout(r, 300));
+      return ticks > before;
+    });
+    assert.ok(survived, 'page animation loop was cancelled by a crashing game');
   } finally {
     await browser.close();
   }

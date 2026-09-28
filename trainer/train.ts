@@ -32,6 +32,7 @@ const OUT = args.out!;
 const file = (name: string) => path.join(OUT, name);
 const FRESH_PER_GEN = 5;
 const CASES_PER_GEN = 3;
+const CASES_WHEN_SATURATED = 12; // once fresh runs stop discriminating
 const CURRICULUM_MAX = 500;
 
 export interface CurriculumCase {
@@ -112,9 +113,10 @@ async function evaluateSeeds(genome: Genome, seeds: number[], cap: number, recor
   return (await Promise.all(parts)).flatMap((r) => r[0]!);
 }
 
-// Fitness = mean fresh survival × (0.75 + 0.25 × curriculum survival).
-// Fresh episodes carry the learning signal; past crashes (curriculum) scale it
-// by up to 25%, so a hard case never zeroes out an otherwise good genome.
+// Fitness = mean fresh survival × (0.5 + 0.5 × curriculum survival).
+// Fresh episodes carry the learning signal early; once genomes survive them
+// all, past crashes (curriculum) decide who is better. A hard case can at most
+// halve an otherwise good genome.
 // Promotion still requires every clearable case.
 function fitnessOf(results: EpisodeResult[], episodes: Episode[]): number {
   let fresh = 0;
@@ -132,7 +134,7 @@ function fitnessOf(results: EpisodeResult[], episodes: Episode[]): number {
     }
   });
   const f = freshN ? fresh / freshN : 0;
-  return casesN ? f * (0.75 + 0.25 * (cases / casesN)) : f;
+  return casesN ? f * (0.5 + 0.5 * (cases / casesN)) : f;
 }
 
 const GRAVE_REPLAYABLE = 150;
@@ -191,10 +193,23 @@ for (let n = 0; n < maxGens && !stop; n++) {
   const gen = pop.generation;
   const episodes: Episode[] = [];
   for (let i = 0; i < FRESH_PER_GEN; i++) episodes.push({kind: 'fresh', seed: (seedRng.next() * 2 ** 31) >>> 0, cap: TRAIN_CAP});
+  // Curriculum sample, weighted toward the lessons that still kill good
+  // genomes: gate failures (30-min max-speed runs) and top-speed crashes.
   const open = curriculum.filter((c) => c.clearedBy === undefined);
   const pickFrom = open.length ? open : curriculum;
-  for (let i = 0; i < Math.min(CASES_PER_GEN, pickFrom.length); i++) {
-    const c = pickFrom[Math.floor(seedRng.next() * pickFrom.length)]!;
+  const saturated = (history.at(-1)?.best ?? 0) >= 0.999;
+  const weights = pickFrom.map((c) => (c.source === 'gate' ? 4 : 1) * (c.speed >= 12 ? 2 : 1));
+  const total = weights.reduce((a, b) => a + b, 0);
+  const picked = new Set<number>();
+  const want = Math.min(saturated ? CASES_WHEN_SATURATED : CASES_PER_GEN, pickFrom.length);
+  while (picked.size < want) {
+    let x = seedRng.next() * total;
+    let i = 0;
+    while (x >= weights[i]!) x -= weights[i++]!;
+    picked.add(Math.min(i, pickFrom.length - 1));
+  }
+  for (const i of picked) {
+    const c = pickFrom[i]!;
     episodes.push({kind: 'case', id: c.id, snapshot: c.snapshot, cap: CASE_CAP});
   }
   const genomes = pop.members.map((m) => m.genome);

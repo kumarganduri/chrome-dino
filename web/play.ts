@@ -113,30 +113,32 @@ export class PlayDialog {
       done = true;
       const r = game.runner;
       const obstacles = r.horizon.obstacles.slice(0, 3).map((o: any) => `${o.typeConfig.type}${o.size}@${o.yPos}`).join(' ');
-      if (!killed) {
-        this.status.textContent = `It survived all ${drops.length} of your drops. Try again?`;
-        return;
-      }
-      this.status.textContent = 'You crashed it! Verifying with the server…';
+      this.status.textContent = killed ? 'You crashed it! Verifying with the server…' :
+        `It survived all ${drops.length} of your drops.`;
       let verified = false;
       let snapshot: any = null;
       if (this.ctxp.live && run) {
+        // Every attack is re-played server-side: survivals count too.
         try {
           const res = await this.ctxp.live.post<{verdict: string; reason?: string; snapshot?: any}>('/api/attack', {
             seed: run.seed, championVersion: run.championVersion, forkFrame, drops, name: this.name(),
           });
           verified = res.verdict === 'kill';
           snapshot = res.snapshot ?? null;
-          this.status.textContent = verified ?
-            'Verified kill. It is on the board, and the champion is now training on it.' :
-            `Not counted: ${res.reason ?? res.verdict}.`;
+          if (killed) {
+            this.status.textContent = verified ?
+              'Verified kill. It is on the board, and the champion is now training on it.' :
+              `Not counted: ${res.reason ?? res.verdict}.`;
+          } else {
+            this.status.textContent += res.verdict === 'survived' ? ' Logged on the board. Try again?' : ` (${res.reason ?? res.verdict})`;
+          }
         } catch (e) {
-          this.status.textContent = `Could not verify (${(e as Error).message}). Counted locally only.`;
+          this.status.textContent += ` (Could not verify: ${(e as Error).message})`;
         }
-      } else {
+      } else if (killed) {
         this.status.textContent = 'You crashed it! (Offline: counted in this tab only.)';
       }
-      this.ctxp.onKill({name: this.name(), obstacles, speed: r.currentSpeed, verified, snapshot, genome});
+      if (killed) this.ctxp.onKill({name: this.name(), obstacles, speed: r.currentSpeed, verified, snapshot, genome});
     };
     this.loop = new FixedLoop(() => {
       if (done) return false;

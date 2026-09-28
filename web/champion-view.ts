@@ -49,6 +49,8 @@ export class ChampionView {
   private crashedAt = 0;
   private restartTimer = 0;
   nextSeed: () => RunSpec = () => ({seed: randomSeed(), startWall: Date.now()});
+  /** Local mode starts the next run itself; in live mode the server announces it. */
+  autoRestart = true;
 
   constructor(canvas: HTMLCanvasElement, sprite: HTMLImageElement) {
     this.canvas = canvas;
@@ -119,9 +121,9 @@ export class ChampionView {
     this.onCrash({
       seed: this.run.seed, frames: g.frame, score: scoreOf(g), speed: r.currentSpeed,
       obstacles: r.horizon.obstacles.slice(0, 3).map((o: any) => `${o.typeConfig.type}${o.size}@${o.yPos}`).join(' '),
-      snapshot: pre, genome: this.champion.genome, source: this.run.checkpoint !== undefined ? 'live' : 'local',
+      snapshot: pre, genome: this.champion.genome, source: this.autoRestart ? 'local' : 'live',
     });
-    this.restartTimer = window.setTimeout(() => this.begin(this.nextSeed()), 2500);
+    if (this.autoRestart) this.restartTimer = window.setTimeout(() => this.begin(this.nextSeed()), 2500);
   }
 
   get timeSinceCrashMs(): number {

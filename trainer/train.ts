@@ -92,6 +92,9 @@ const history = readJson<HistoryRow[]>(file('history.json'), []);
 let champion = readJson<Champion | null>(file('champion.json'), null);
 let leader = readJson<{gen: number; fitness: number; genome: Genome} | null>(file('leader.json'), null);
 const seedRng = new Rng(Number(args.seed) * 7919 + pop.generation);
+// Cases that made the latest full gate fail. They block promotion, so every
+// generation trains on all of them (hard-example mining) until they pass.
+let blocking = readJson<string[]>(file('blocking.json'), []);
 
 async function evaluate(genomes: Genome[], episodes: Episode[], record = false): Promise<EpisodeResult[][]> {
   const chunk = Math.ceil(genomes.length / pool.size);
@@ -139,7 +142,7 @@ function fitnessOf(results: EpisodeResult[], episodes: Episode[]): number {
 
 const GRAVE_REPLAYABLE = 150;
 
-function addCrash(crash: CrashRecord, source: CurriculumCase['source'], gen: number, genomeId: number, seed?: number, genome?: Genome): void {
+function addCrash(crash: CrashRecord, source: CurriculumCase['source'], gen: number, genomeId: number, seed?: number, genome?: Genome): string {
   let c = curriculum.find((x) => x.signature === crash.signature);
   if (!c) {
     c = {id: `c${gen}-${curriculum.length}-${crash.signature.length}`, signature: crash.signature, source, gen,
@@ -158,9 +161,11 @@ function addCrash(crash: CrashRecord, source: CurriculumCase['source'], gen: num
     delete graveyard[i]!.genome;
     delete graveyard[i]!.snapshot;
   }
+  return c.id;
 }
 
 function persist(): void {
+  writeJsonAtomic(file('blocking.json'), blocking);
   writeJsonAtomic(file('population.json'), pop.toJSON());
   writeJsonAtomic(file('curriculum.json'), curriculum);
   writeJsonAtomic(file('graveyard.json'), graveyard);
@@ -169,15 +174,16 @@ function persist(): void {
   if (leader) writeJsonAtomic(file('leader.json'), leader);
 }
 
-async function gate(genome: Genome, gen: number, genomeId: number, seeds: number): Promise<{passed: number; seeds: number}> {
+async function gate(genome: Genome, gen: number, genomeId: number, seeds: number): Promise<{passed: number; seeds: number; failedCases: string[]}> {
   const list = Array.from({length: seeds}, (_, i) => GATE_SEED_BASE + i);
   const results = await evaluateSeeds(genome, list, GATE_CAP, true);
   let passed = 0;
+  const failedCases: string[] = [];
   results.forEach((r, i) => {
     if (r.survived) passed++;
-    else if (r.crash) addCrash(r.crash, 'gate', gen, genomeId, list[i], genome);
+    else if (r.crash) failedCases.push(addCrash(r.crash, 'gate', gen, genomeId, list[i], genome));
   });
-  return {passed, seeds};
+  return {passed, seeds, failedCases};
 }
 
 let stop = false;
@@ -226,8 +232,18 @@ for (let n = 0; n < maxGens && !stop; n++) {
     while (x >= weights[i]!) x -= weights[i++]!;
     picked.add(Math.min(i, pickFrom.length - 1));
   }
+  const chosen = new Set<string>();
+  for (const id of blocking) {
+    const c = curriculum.find((x) => x.id === id);
+    if (c && !chosen.has(c.id)) {
+      chosen.add(c.id);
+      episodes.push({kind: 'case', id: c.id, snapshot: c.snapshot, cap: CASE_CAP});
+    }
+  }
   for (const i of picked) {
     const c = pickFrom[i]!;
+    if (chosen.has(c.id)) continue;
+    chosen.add(c.id);
     episodes.push({kind: 'case', id: c.id, snapshot: c.snapshot, cap: CASE_CAP});
   }
   const genomes = pop.members.map((m) => m.genome);
@@ -256,10 +272,12 @@ for (let n = 0; n < maxGens && !stop; n++) {
     const quick = await gate(best.genome, gen, best.id, Number(args['quick-gate-seeds']));
     framesSimulated += quick.passed * GATE_CAP;
     console.log(`  gen ${gen}: quick gate ${quick.passed}/${quick.seeds}`);
+    if (quick.failedCases.length) blocking = [...new Set([...blocking, ...quick.failedCases])];
     if (quick.passed === quick.seeds) {
       const full = await gate(best.genome, gen, best.id, Number(args['gate-seeds']));
       framesSimulated += full.passed * GATE_CAP;
       console.log(`  gen ${gen}: FULL gate ${full.passed}/${full.seeds}`);
+      blocking = [...new Set([...blocking, ...full.failedCases])];
       if (full.passed === full.seeds) {
         // Must also clear every clearable curriculum case.
         const cases: Episode[] = curriculum.map((c) => ({kind: 'case', id: c.id, snapshot: c.snapshot, cap: CASE_CAP}));
@@ -273,6 +291,7 @@ for (let n = 0; n < maxGens && !stop; n++) {
             gate: {seeds: full.seeds, passed: full.passed, framesPerSeed: GATE_CAP, firstSeed: GATE_SEED_BASE},
             promotedAt: new Date().toISOString()};
           console.log(`  ★ champion v${version} promoted (gen ${gen})`);
+          blocking = [];
         }
       }
     }

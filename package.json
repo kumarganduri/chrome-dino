@@ -4,7 +4,7 @@
   "private": true,
   "description": "Chrome's real T-Rex runner, learning live with NEAT to never crash.",
   "type": "module",
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "engines": {
     "node": ">=24"
   },

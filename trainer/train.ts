@@ -144,7 +144,13 @@ const GRAVE_REPLAYABLE = 150;
 
 function addCrash(crash: CrashRecord, source: CurriculumCase['source'], gen: number, genomeId: number, seed?: number, genome?: Genome): string {
   let c = curriculum.find((x) => x.signature === crash.signature);
-  if (!c) {
+  if (c) {
+    // Same killer again: keep the lesson current. The snapshot is the state
+    // today's genomes actually reach, not the one an ancestor reached.
+    c.snapshot = crash.snapshot;
+    c.gen = gen;
+    delete c.clearedBy;
+  } else {
     c = {id: `c${gen}-${curriculum.length}-${crash.signature.length}`, signature: crash.signature, source, gen,
       obstacles: crash.obstacles, speed: crash.speed, snapshot: crash.snapshot};
     curriculum.push(c);
@@ -254,6 +260,9 @@ for (let n = 0; n < maxGens && !stop; n++) {
   const bestIdx = fitness.indexOf(Math.max(...fitness));
   const best = pop.members[bestIdx]!;
   const bestResults = results[bestIdx]!;
+  // Blocking cases the best genome now clears are done.
+  const passed = new Set(episodes.map((e, i) => (e.kind === 'case' && bestResults[i]!.survived ? e.id : '')).filter(Boolean));
+  blocking = blocking.filter((id) => !passed.has(id));
   // Record the best genome's crashes (deterministic re-run with snapshots).
   const crashed = bestResults.map((r, i) => (!r.survived ? i : -1)).filter((i) => i >= 0);
   if (crashed.length) {

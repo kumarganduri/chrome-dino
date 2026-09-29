@@ -47,10 +47,23 @@ function setPressed(group: HTMLElement, btn: HTMLElement) {
   for (const b of group.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === btn));
 }
 
+// A shared run needs no server: (seed, start time, champion) fix every frame,
+// so every browser computes the same run from the wall clock, starting from
+// the latest published hourly checkpoint (trainer/shared-run.ts).
+interface SharedRun {
+  seed: number;
+  startWall: number;
+  startedAt: string;
+  championVersion: number;
+  checkpointEvery: number;
+  verifiedUntilFrame: number;
+  verifiedUntil: string;
+}
+
 const localRecords = {longest: 0, kills: [] as BoardRow[], humans: [] as BoardRow[]};
 
 async function main() {
-  const [sprite, champion, leader, history, graves, stats, lessons] = await Promise.all([
+  const [sprite, champion, leader, history, graves, stats, lessons, sharedRun] = await Promise.all([
     loadImage(SPRITE_URL),
     json<PublishedChampion>('data/champion.json'),
     json<{gen: number; genome: Genome}>('data/leader.json'),
@@ -58,6 +71,7 @@ async function main() {
     json<any[]>('data/graveyard.json'),
     json<PublishedStats>('data/stats.json'),
     json<any[]>('data/lessons.json'),
+    json<SharedRun>('data/live/run.json'),
   ]);
 
   const champInfo = (): ChampionInfo | null => {
@@ -68,6 +82,8 @@ async function main() {
   let current = champInfo();
 
   // ── Hero ────────────────────────────────────────────────────────────────
+  const shared = sharedRun && current && sharedRun.championVersion === current.version ? sharedRun : null;
+  const sharedSince = shared ? new Date(shared.startWall).toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'}) : '';
   const view = new ChampionView($('#champion') as HTMLCanvasElement, sprite);
   const tag = $('#champion-tag');
   const proof = $('#proof');
@@ -89,13 +105,36 @@ async function main() {
     if (stats?.oracle) {
       lines.push(`<span class="muted">Forever is possible: a lookahead oracle survived ${stats.oracle.survived}/${stats.oracle.seeds} tracks × ${stats.oracle.gameHoursPerSeed.toFixed(1)} h.</span>`);
     }
+    if (shared) {
+      const until = new Date(shared.verifiedUntil).toLocaleDateString(undefined, {dateStyle: 'medium'});
+      lines.push(`<b>✓ this run</b>: simulated ahead and verified crash-free through ${until}. Every browser computes the same run.`);
+    }
     proof.innerHTML = lines.join('<br>');
   };
   setProof();
 
+  const pill = $('#live-pill');
+  const pillText = $('#live-text');
+
+  async function joinSharedRun(): Promise<boolean> {
+    if (!shared || !current) return false;
+    const now = Math.floor((Date.now() - shared.startWall) / (1000 / 60));
+    const cpFrame = Math.min(Math.floor(now / shared.checkpointEvery) * shared.checkpointEvery, shared.verifiedUntilFrame);
+    const checkpoint = await json<any>(`data/live/${cpFrame}.json`);
+    if (!checkpoint) return false;
+    const spec = {seed: shared.seed, startWall: shared.startWall, checkpoint};
+    if (!view.game) view.start(current, spec);
+    else view.begin(spec);
+    view.autoRestart = false;
+    tag.textContent = `${current.label} · shared live run since ${sharedSince}`;
+    pill.dataset.state = 'live';
+    pillText.textContent = 'live · shared run';
+    return true;
+  }
+
   if (!current) {
     tag.textContent = 'no trained brain published yet';
-  } else {
+  } else if (!(await joinSharedRun())) {
     tag.textContent = current.label;
     view.start(current, {seed: randomSeed(), startWall: Date.now()});
   }
@@ -239,11 +278,19 @@ async function main() {
     } else {
       const note = document.createElement('p');
       note.className = 'muted';
-      note.textContent = 'The live global board appears when the live server is running. Records below are from this tab.';
+      note.textContent = shared ?
+        'Everyone who opens this page sees this same run. Kills and races below count in this tab only.' :
+        'The live global board appears when the live server is running. Records below are from this tab.';
       parts.push(note);
-      parts.push(list('This tab', [
-        {name: 'champion, longest run', value: Math.max(localRecords.longest, view.game?.frame ?? 0) / 60},
-      ], secs, ''));
+      if (shared) {
+        parts.push(list('Shared live run', [
+          {name: `${current?.label ?? 'champion'}`, value: (view.game?.frame ?? 0) / 60, detail: `since ${sharedSince}`},
+        ], secs, ''));
+      } else {
+        parts.push(list('This tab', [
+          {name: 'champion, longest run', value: Math.max(localRecords.longest, view.game?.frame ?? 0) / 60},
+        ], secs, ''));
+      }
       parts.push(list('Your kills', localRecords.kills, (r) => `${r.value}`, 'Try to kill it.'));
       parts.push(list('Your races', localRecords.humans, secs, 'Race it.'));
     }
@@ -253,11 +300,9 @@ async function main() {
   // ── Live server ─────────────────────────────────────────────────────────
   const api = apiBase();
   const live = api ? new LiveClient(api) : null;
-  const pill = $('#live-pill');
-  const pillText = $('#live-text');
   let liveRun: {seed: number; championVersion: number} | null = null;
   if (live) {
-    pillText.textContent = 'connecting…';
+    if (!shared) pillText.textContent = 'connecting…';
     const applyState = (s: LiveState) => {
       if (s.champion) {
         current = {version: s.champion.version, genome: validateGenome(s.champion.genome), label: s.champion.label};
@@ -312,11 +357,13 @@ async function main() {
       applyState(s);
       live.connect();
     }).catch(() => {
-      pill.dataset.state = 'offline';
-      pillText.textContent = 'local';
+      if (!shared) {
+        pill.dataset.state = 'offline';
+        pillText.textContent = 'local';
+      }
       renderBoard();
     });
-  } else {
+  } else if (!shared) {
     pillText.textContent = 'local';
   }
   renderBoard();

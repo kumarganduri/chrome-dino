@@ -56,6 +56,10 @@ export class ChampionView {
     this.canvas = canvas;
     this.sprite = sprite;
     this.loop = new FixedLoop(() => this.step(), () => this.render(), 600);
+    // Browsers pause background tabs; on return, catch up headlessly.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.game) this.fastForward();
+    });
   }
 
   start(champion: ChampionInfo, run: RunSpec): void {
@@ -78,7 +82,28 @@ export class ChampionView {
     this.ring = [];
     this.game = Game.create(engine, run.seed, {canvas: this.canvas, image: this.sprite});
     if (run.checkpoint) this.game.restore(run.checkpoint);
+    this.fastForward();
     this.catchUp();
+  }
+
+  /**
+   * Jump to the wall-clock frame headlessly (no drawing): simulate every
+   * missed frame in a null-canvas game, then move that state into the
+   * visible game. An hour of frames takes well under a second.
+   */
+  fastForward(): void {
+    const target = this.targetFrame() - 1;
+    if (this.game.crashed || target - this.game.frame < 600) return;
+    const g = Game.create(engine, this.run.seed);
+    g.restore(this.game.snapshot());
+    while (g.frame < target && g.step(this.policy.keys(g.runner))) {
+      if (g.frame % RING_EVERY === 0 && target - g.frame < RING_EVERY * RING_SIZE) {
+        this.ring.push(g.snapshot());
+        if (this.ring.length > RING_SIZE) this.ring.shift();
+      }
+    }
+    this.game.restore(g.snapshot());
+    if (g.crashed) this.handleCrash();
   }
 
   /** Frames the live run should be at, by wall clock. */

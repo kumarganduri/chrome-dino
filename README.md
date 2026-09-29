@@ -29,6 +29,16 @@ Honest notes:
 - **v1 wasn't perfect.** It passed the gate but crashed once in 6,062 game-hours of held-out play: it jumped into a high pterodactyl. Promotion now also requires 1,000 fresh held-out tracks × 60 min.
 - **Tallies:** training has simulated **25+ billion frames** over **2,700+ generations** on one laptop.
 
+## One shared run, no server needed
+
+Everyone who opens the page sees **the same run**, which started on **Sep 29, 2026 at 02:45 (UTC+4)**. It keeps going with no server and no tab open anywhere.
+
+- **Why it works:** the run is fully determined by its seed and the champion's brain, and the current frame by the wall clock.
+- **Proven in advance:** `trainer/shared-run.ts` simulated the run ahead of time and verified it **crash-free through Oct 6, 2026** (score ≈ 13.5 million by then). It also matched all 41 checkpoints saved by the live server that had been playing the same run, bit for bit.
+- **On page load:** each browser loads the latest hourly checkpoint (`web/data/live/`) and fast-forwards headlessly to "now", in well under a second.
+- **Background tabs:** browsers pause them; on return, the page catches up the same way.
+- **Kept honest:** `test/shared-run.test.ts` checks in CI that the checkpoints chain into one continuous run of the published champion.
+
 ## What's on the page
 
 | | |

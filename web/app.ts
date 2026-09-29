@@ -17,6 +17,7 @@ import {FitnessChart, type ChartRow} from './chart.ts';
 import {Graveyard, type Grave} from './graveyard.ts';
 import {PlayDialog} from './play.ts';
 import {apiBase, LiveClient, type BoardRow, type LiveState} from './live.ts';
+import {startRealChromePanel} from './real-chrome.ts';
 
 interface PublishedChampion {
   version: number;
@@ -116,6 +117,17 @@ async function main() {
   const pill = $('#live-pill');
   const pillText = $('#live-text');
 
+  // Which run the hero shows: the shared run everyone sees, or a fresh run
+  // this visitor started (new random track, from zero, in this browser only).
+  let mode: 'shared' | 'fresh' = 'fresh';
+  const freshBtn = $('#btn-fresh') as HTMLButtonElement;
+  const modeShared = document.getElementById('mode-shared');
+  for (const el of document.querySelectorAll('.shared-since')) el.textContent = shared ? sharedSince : 'recently';
+  const showMode = () => {
+    modeShared?.classList.toggle('active', mode === 'shared');
+    freshBtn.textContent = mode === 'fresh' && shared ? 'Back to the shared run' : 'Start a fresh run';
+  };
+
   async function joinSharedRun(): Promise<boolean> {
     if (!shared || !current) return false;
     const now = Math.floor((Date.now() - shared.startWall) / (1000 / 60));
@@ -126,18 +138,37 @@ async function main() {
     if (!view.game) view.start(current, spec);
     else view.begin(spec);
     view.autoRestart = false;
+    mode = 'shared';
     tag.textContent = `${current.label} · shared live run since ${sharedSince}`;
     pill.dataset.state = 'live';
     pillText.textContent = 'live · shared run';
+    showMode();
     return true;
+  }
+
+  function startFreshRun(): void {
+    if (!current) return;
+    const spec = {seed: randomSeed(), startWall: Date.now()};
+    if (!view.game) view.start(current, spec);
+    else view.begin(spec);
+    view.autoRestart = true;
+    mode = 'fresh';
+    tag.textContent = `${current.label} · fresh run in your browser (new random track)`;
+    pill.dataset.state = 'offline';
+    pillText.textContent = 'your fresh run';
+    showMode();
   }
 
   if (!current) {
     tag.textContent = 'no trained brain published yet';
+    freshBtn.disabled = true;
   } else if (!(await joinSharedRun())) {
-    tag.textContent = current.label;
-    view.start(current, {seed: randomSeed(), startWall: Date.now()});
+    startFreshRun();
   }
+  freshBtn.addEventListener('click', async () => {
+    if (mode === 'fresh' && shared) await joinSharedRun();
+    else startFreshRun();
+  });
 
   const graveyard = new Graveyard($('#graves'), $('#replay') as HTMLCanvasElement, $('#replay-caption'), sprite);
   for (const g of (graves ?? []).slice().reverse()) {
@@ -283,9 +314,11 @@ async function main() {
         'The live global board appears when the live server is running. Records below are from this tab.';
       parts.push(note);
       if (shared) {
-        parts.push(list('Shared live run', [
-          {name: `${current?.label ?? 'champion'}`, value: (view.game?.frame ?? 0) / 60, detail: `since ${sharedSince}`},
-        ], secs, ''));
+        const rows: BoardRow[] = [
+          {name: `${current?.label ?? 'champion'}, shared run`, value: (Date.now() - shared.startWall) / 1000, detail: `since ${sharedSince}`},
+        ];
+        if (mode === 'fresh') rows.push({name: 'your fresh run', value: (view.game?.frame ?? 0) / 60});
+        parts.push(list('Runs', rows, secs, ''));
       } else {
         parts.push(list('This tab', [
           {name: 'champion, longest run', value: Math.max(localRecords.longest, view.game?.frame ?? 0) / 60},
@@ -367,6 +400,8 @@ async function main() {
     pillText.textContent = 'local';
   }
   renderBoard();
+
+  startRealChromePanel();
 
   // ── Play modes ──────────────────────────────────────────────────────────
   const play = new PlayDialog({

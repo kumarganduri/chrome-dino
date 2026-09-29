@@ -40,8 +40,38 @@
       <div class="actions">
         <button class="btn primary" id="btn-attack" type="button">Try to kill it</button>
         <button class="btn" id="btn-race" type="button">Race it</button>
+        <button class="btn ghost" id="btn-fresh" type="button" title="Start a brand-new run with a new random track, from zero, in your browser">Start a fresh run</button>
       </div>
     </aside>
+  </section>
+
+  <section class="card explain" aria-labelledby="explain-title">
+    <h2 id="explain-title">What you're watching</h2>
+    <ol class="modes">
+      <li id="mode-shared"><b>The shared live run</b> (top). One run of Chrome's dino game, started <span class="shared-since">last night</span> and never stopped. Everyone who opens this page sees the same run at the same moment: your browser computes it from the seed and the clock, starting from an hourly checkpoint, so nothing needs to stay open anywhere. It has been simulated ahead and verified crash-free for the coming week.</li>
+      <li id="mode-real"><b>Literal chrome://dino</b> (below, when streaming). A real Google Chrome tab on <code>chrome://dino</code> on one computer, played by the same brain with Chrome's real clock and randomness, streamed live. It can't be recomputed elsewhere, so it only appears while that computer streams.</li>
+      <li><b>Your own fresh run.</b> Press <em>Start a fresh run</em> to watch the champion start a brand-new random track from zero, in your browser only. <em>Back to the shared run</em> returns you to the shared one.</li>
+    </ol>
+    <p class="sub">The game is Chromium's own T-Rex code, unedited. The brain sees only what's on screen (the next obstacles, its height, the speed) and presses jump or duck. It never knows the future.</p>
+  </section>
+
+  <section class="card real" id="real-chrome" hidden data-state="connecting">
+    <header class="card-head">
+      <div>
+        <h2>Literal chrome://dino, live from one machine</h2>
+        <p class="sub">A real Google Chrome tab on <code>chrome://dino</code>, played by the same champion with Chrome's real clock and randomness, streamed as it happens.</p>
+      </div>
+      <p class="caption" id="real-status">connecting…</p>
+    </header>
+    <div class="real-body">
+      <div class="stage small real-stage"><img id="real-frame" alt="Live stream of the chrome://dino tab"></div>
+      <dl class="stats real-stats">
+        <div><dt>Since last crash</dt><dd id="real-clock">–</dd></div>
+        <div><dt>Score</dt><dd id="real-score">–</dd></div>
+        <div><dt>Crashes</dt><dd id="real-crashes">–</dd></div>
+        <div><dt>Streaming since</dt><dd id="real-since">–</dd></div>
+      </dl>
+    </div>
   </section>
 
   <section class="grid">

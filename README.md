@@ -6,12 +6,38 @@
 
 ![dino.forever](docs/screenshot.png)
 
+## Three ways to watch
+
+Open the link above; nothing to install.
+
+1. **The shared live run** (top of the page).
+   - One run of Chrome's dino, **started Sep 29, 2026 at 02:45 (UTC+4) and never stopped**. Everyone sees the same run at the same moment, with the same *time since last crash* clock and the same score.
+   - No server or open tab is needed: your browser computes the run from its seed and the clock, starting from the latest hourly checkpoint.
+   - It was simulated ahead and verified crash-free for the following week ([how](#one-shared-run-no-server-needed)).
+2. **Literal `chrome://dino`, live from one machine** (the panel below it).
+   - A real Google Chrome tab on `chrome://dino`, played by the same brain with Chrome's real clock and randomness, streamed live from one computer.
+   - It can't be recomputed elsewhere, so it appears only while that computer streams. On strict networks it switches to a 1-frame-per-second compatibility mode.
+3. **Your own fresh run.** Press **Start a fresh run** to watch the champion begin a brand-new random track from zero, in your browser only. **Back to the shared run** returns to the shared one.
+
+The brain sees only what's on screen (the next obstacles, its height, the speed) and presses jump or duck. It never knows the future.
+
+## Highlights
+
 - **It's the real game.** Chromium's own T-Rex runner source (`components/neterror/resources/dino_game`), pinned at commit `644979367a` and unedited. Not a clone.
 - **A tiny brain learns it.** NEAT (neuroevolution of augmenting topologies) in a few hundred lines of TypeScript. No ML framework, zero runtime dependencies.
 - **Every crash becomes a lesson.** Each crash is recorded 3 seconds before impact. The trainer replays those moments until the brain clears them.
 - **"Never crashes" is proven, not claimed.** A brain is promoted only after surviving **500 fresh tracks × 30 minutes at top speed with zero crashes**, and every past crash. A lookahead oracle separately shows that running forever is physically possible in Chrome's dino.
-- **Everyone watches the same run.** The server sends a seed and a checkpoint, and every browser re-simulates the identical game frame for frame. The *time since last crash* clock is shared by all viewers.
-- **You can try to kill it.** Choose which obstacles Chrome spawns next. The server replays your attack, and a verified kill goes on the board and into the training data.
+- **Everyone watches the same run.** Every browser re-simulates the identical game frame for frame from a seed and a checkpoint, so the *time since last crash* clock is shared by all viewers.
+- **You can try to kill it.** Choose which obstacles Chrome spawns next. With the optional live server, attacks are replayed and verified, and a verified kill goes on a global board and into the training data.
+
+### Running the literal chrome://dino stream (operator notes)
+
+```bash
+node scripts/real-chrome-live.mjs --port 8090                  # real Chrome tab + stream
+cloudflared tunnel --no-autoupdate --url http://localhost:8090  # public https address
+```
+
+Put the printed `https://….trycloudflare.com` address in `web/config.js` (`DINO_REAL_CHROME`) and push. The machine must stay on, awake and online; the address changes whenever the tunnel restarts.
 
 ## Results (measured, not claimed)
 

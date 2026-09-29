@@ -162,9 +162,24 @@ async function main() {
   if (!current) {
     tag.textContent = 'no trained brain published yet';
     freshBtn.disabled = true;
-  } else if (!(await joinSharedRun())) {
+  } else if (new URLSearchParams(location.search).has('fresh') || !(await joinSharedRun())) {
     startFreshRun();
   }
+
+  // Autopilot for a visitor's own chrome://dino (pasted into DevTools).
+  const autopilotBtn = $('#btn-autopilot');
+  const autopilotStatus = $('#autopilot-status');
+  autopilotBtn.addEventListener('click', async () => {
+    try {
+      const code = await (await fetch('autopilot.js', {cache: 'no-cache'})).text();
+      await navigator.clipboard.writeText(code);
+      autopilotStatus.textContent = 'Copied. Now follow the steps below.';
+    } catch {
+      // Clipboard blocked: show the script so it can be copied by hand.
+      window.open('autopilot.js', '_blank', 'noopener');
+      autopilotStatus.textContent = 'Opened the script in a new tab: select all, copy, then follow the steps.';
+    }
+  });
   freshBtn.addEventListener('click', async () => {
     if (mode === 'fresh' && shared) await joinSharedRun();
     else startFreshRun();

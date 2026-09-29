@@ -14,7 +14,7 @@
 // is streamed, not shared as a seed. Runs log to out/real-chrome-live.jsonl.
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
-import {appendFileSync, existsSync, mkdirSync, readFileSync} from 'node:fs';
+import {appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {parseArgs} from 'node:util';
 
@@ -76,23 +76,38 @@ cdp.on('Page.screencastFrame', async ({data: jpeg, sessionId}) => {
 });
 await cdp.send('Page.startScreencast', {format: 'jpeg', quality: 70, maxWidth: 740, maxHeight: 300, everyNthFrame: 1});
 
+// ── Record history (persists across restarts of this script) ──────────────
+// Every finished run: start, end, duration, score, what ended it. The record
+// is the highest score of any run, including the one in progress.
+const HISTORY_FILE = 'out/real-chrome-live-history.json';
+const history = existsSync(HISTORY_FILE) ? JSON.parse(readFileSync(HISTORY_FILE, 'utf8')) : [];
+const saveHistory = () => writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 1));
+let recorded = 0; // how many of this session's driver runs are already in `history`
+const withMeta = (r) => ({...r, chrome: chromeVersion, champion: data.version ?? null});
+
+let s = null;
 setInterval(async () => {
-  let s;
   try {
     s = await run('window.__dinoForever');
   } catch (e) {
     log({event: 'error', error: String(e)});
     return;
   }
-  if (s.crashes > lastCrashes) {
-    lastCrashes = s.crashes;
-    runStartedAt = Date.now() + 1500; // the driver restarts ~1.5 s after a crash
-    log({event: 'crash', crashes: s.crashes, best: s.best});
+  while (recorded < s.history.length) {
+    const r = withMeta(s.history[recorded++]);
+    history.push(r);
+    saveHistory();
+    log({event: 'crash', ...r});
   }
+  if (s.crashes > lastCrashes) lastCrashes = s.crashes;
+  runStartedAt = s.runStartedAt;
+  const current = {startedAt: s.runStartedAt, score: s.current, ongoing: true};
+  const record = [...history, current].reduce((a, b) => (b.score > a.score ? b : a), current);
   latestStats = {
     chrome: chromeVersion, champion: data.version ?? null,
     streamingSince: startedAt, runStartedAt, now: Date.now(),
     score: s.current, best: s.best, crashes: s.crashes, runs: s.runs, error: s.error ?? null,
+    record, totalRuns: history.length + 1, recent: history.slice(-8).reverse(),
   };
   for (const res of clients) send(res, 'stats', latestStats);
 }, 1000);
@@ -134,6 +149,12 @@ setInterval(() => {
 }, 15_000);
 for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, async () => {
+    // Keep the run in progress in the history instead of losing it.
+    if (s && s.current > 0) {
+      history.push(withMeta({startedAt: s.runStartedAt, endedAt: Date.now(), score: s.current, speed: null,
+        killedBy: 'stopped (stream restarted)', stopped: true}));
+      saveHistory();
+    }
     log({event: 'stop', stats: latestStats});
     await browser.close().catch(() => {});
     process.exit(0);

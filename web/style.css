@@ -380,3 +380,14 @@ button { font: inherit; color: inherit; }
 .modes { margin: 10px 0 8px; padding-left: 20px; display: grid; gap: 8px; color: var(--muted); font-size: 14px; }
 .modes b { color: var(--ink); }
 .modes li.active b::after { content: "  ← now showing"; color: var(--pos); font: 600 11px var(--mono); }
+.record { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.record-line { margin: 0 0 6px; font-size: 14px; }
+.record-line span { font-family: var(--mono); font-size: 13px; }
+.history summary { cursor: pointer; font: 12px var(--mono); color: var(--muted); }
+.history table { width: 100%; border-collapse: collapse; margin-top: 8px; font: 12px var(--mono); }
+.history th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--line); padding: 4px 6px; }
+.history td { padding: 4px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.history tr.is-record td { color: var(--good); font-weight: 600; }
+.steps-inline { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--paper); color: var(--ink); }
+#btn-autopilot { padding: 4px 10px; font-size: 13px; margin-left: 4px; }

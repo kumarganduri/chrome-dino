@@ -17,7 +17,16 @@ Open the link above; nothing to install.
 2. **Literal `chrome://dino`, live from one machine** (the panel below it).
    - A real Google Chrome tab on `chrome://dino`, played by the same brain with Chrome's real clock and randomness, streamed live from one computer.
    - It can't be recomputed elsewhere, so it appears only while that computer streams. On strict networks it switches to a 1-frame-per-second compatibility mode.
-3. **Your own fresh run.** Press **Start a fresh run** to watch the champion begin a brand-new random track from zero, in your browser only. **Back to the shared run** returns to the shared one.
+   - **It restarts itself after a crash** (1.5 s later, like pressing Space).
+   - **Every run is recorded** (start, end, duration, score, and whether it ended in a crash and on what obstacle). The panel shows the 🏆 **record** and the run history, which persist across restarts.
+3. **Your own fresh run.** Press **Start a fresh run** to watch the champion begin a brand-new random track from zero, in your browser only, or open one in a new tab with `?fresh=1`. **Back to the shared run** returns to the shared one.
+4. **Your own real `chrome://dino`.** Browsers don't let web pages open or control `chrome://` pages, so:
+   1. Press **Copy autopilot** on the page.
+   2. Open `chrome://dino` in a new tab.
+   3. Open DevTools' console (Ctrl+Shift+J or ⌥⌘J; type `allow pasting` if Chrome asks).
+   4. Paste and press Enter.
+
+   The champion then plays your real Chrome dino, using the same driver code (`src/web/inject.ts`) as the live stream.
 
 The brain sees only what's on screen (the next obstacles, its height, the speed) and presses jump or duck. It never knows the future.
 

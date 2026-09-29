@@ -87,6 +87,8 @@ export async function build() {
     esbuild.build({...common, format: 'iife', globalName: 'DinoEngine', platform: 'browser', outfile: path.join(root, 'dist/engine.iife.js')}),
     esbuild.build({...common, entryPoints: [path.join(root, 'src/web/core.ts')], format: 'esm', platform: 'browser', outfile: path.join(root, 'dist/core.js')}),
     esbuild.build({...common, entryPoints: [path.join(root, 'src/web/inject.ts')], format: 'iife', globalName: 'DinoForever', platform: 'browser', outfile: path.join(root, 'dist/inject.js')}),
+    esbuild.build({...common, entryPoints: [path.join(root, 'src/web/autopilot.ts')], format: 'iife', platform: 'browser', minify: true,
+      legalComments: 'none', outfile: path.join(root, 'public/autopilot.js')}),
   ]);
   stampVersions();
 }

@@ -4,6 +4,15 @@
 // and randomness, so it can't be recomputed here; it is streamed.
 import {$, formatDuration, formatInt} from './runtime.ts';
 
+interface RunRow {
+  startedAt: number;
+  endedAt?: number;
+  score: number;
+  killedBy?: string;
+  ongoing?: boolean;
+  stopped?: boolean;
+}
+
 interface Stats {
   chrome: string;
   champion: number | null;
@@ -13,7 +22,13 @@ interface Stats {
   score: number;
   best: number;
   crashes: number;
+  record?: RunRow;
+  totalRuns?: number;
+  recent?: RunRow[];
 }
+
+const endedBy = (r: RunRow) => (r.stopped ? 'no crash (stream restarted)' : `crash: ${r.killedBy ?? 'obstacle'}`);
+const when = (ms: number) => new Date(ms).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'});
 
 export function realChromeUrl(): string | null {
   const q = new URLSearchParams(location.search).get('realchrome');
@@ -46,6 +61,33 @@ export function startRealChromePanel(): void {
     since.textContent = new Date(stats.streamingSince).toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'});
     status.textContent = `live from one machine · ${stats.chrome} · champion v${stats.champion ?? '?'}`;
     section.dataset.state = 'live';
+    renderRecord(stats);
+  };
+  const recordBox = $('#real-record');
+  const recordText = $('#real-record-text');
+  const total = $('#real-total');
+  const tbody = $('#real-history');
+  const renderRecord = (st: Stats) => {
+    if (!st.record) return;
+    recordBox.hidden = false;
+    const r = st.record;
+    const end = r.ongoing ? st.now : (r.endedAt ?? st.now);
+    recordText.textContent = `score ${formatInt(r.score)} · lasted ${formatDuration(end - r.startedAt)} · ` +
+      `${when(r.startedAt)} → ${r.ongoing ? 'still running' : when(end)}` +
+      (r.ongoing ? '' : ` · ${endedBy(r)}`);
+    total.textContent = formatInt(st.totalRuns ?? 0);
+    tbody.replaceChildren(...(st.recent ?? []).map((row) => {
+      const tr = document.createElement('tr');
+      if (row.startedAt === r.startedAt && !r.ongoing) tr.className = 'is-record';
+      const cells = [when(row.startedAt), row.endedAt ? when(row.endedAt) : '–',
+        formatDuration((row.endedAt ?? st.now) - row.startedAt), formatInt(row.score), endedBy(row)];
+      for (const c of cells) {
+        const td = document.createElement('td');
+        td.textContent = c;
+        tr.append(td);
+      }
+      return tr;
+    }));
   };
   const offline = () => {
     section.dataset.state = 'offline';

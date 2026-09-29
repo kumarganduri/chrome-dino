@@ -1,8 +1,13 @@
-// Injected into the real chrome://dino page by scripts/real-chrome.mjs.
-// Uses the same sense + network code as everything else, reads Chrome's own
-// Runner instance, and presses keys with real KeyboardEvents (keyCode 32 =
-// jump, 40 = duck), exactly like a player. Real time, real rAF: live only,
-// never replayable.
+// Injected into the real chrome://dino page, by scripts/real-chrome*.mjs or
+// pasted into DevTools as the "autopilot" (web/autopilot.ts). Uses the same
+// sense + network code as everything else, reads Chrome's own Runner
+// instance, and presses keys with real KeyboardEvents (keyCode 32 = jump,
+// 40 = duck), exactly like a player. Real time, real rAF: live only, never
+// replayable.
+//
+// Every run is recorded: start and end time (wall clock), final score, speed
+// and the obstacle that ended it. After a crash the game restarts itself
+// 1.5 s later, like pressing Space on the game-over screen.
 import {Network, validateGenome} from '../neat/genome.ts';
 import {BrainPolicy} from '../neat/policy.ts';
 
@@ -10,18 +15,34 @@ import {BrainPolicy} from '../neat/policy.ts';
 // binding, not a window property, so it is referenced by name.
 declare const Runner: {getInstance(): any};
 
-interface Stats {
+export interface RunRecord {
+  startedAt: number; // ms since epoch
+  endedAt: number;
+  score: number;
+  speed: number;
+  killedBy: string; // e.g. "pterodactyl@50", "cactusLarge×3"
+}
+
+export interface Stats {
   runs: number;
   crashes: number;
   best: number;
   current: number;
+  runStartedAt: number;
+  history: RunRecord[]; // finished runs, oldest first (this page session)
   running: boolean;
   error?: string;
 }
 
+function describeObstacle(o: any): string {
+  if (!o) return 'unknown';
+  const type = o.typeConfig?.type ?? 'obstacle';
+  return type === 'pterodactyl' ? `pterodactyl@${o.yPos}` : `${type}×${o.size ?? 1}`;
+}
+
 export function start(genomeJson: unknown): Stats {
   const policy = new BrainPolicy(new Network(validateGenome(genomeJson)));
-  const stats: Stats = {runs: 0, crashes: 0, best: 0, current: 0, running: true};
+  const stats: Stats = {runs: 0, crashes: 0, best: 0, current: 0, runStartedAt: Date.now(), history: [], running: true};
   const held = {jump: false, down: false};
   const press = (key: 'jump' | 'down', down: boolean) => {
     // A held key re-fires keydown every frame (auto-repeat), exactly like
@@ -55,17 +76,24 @@ export function start(genomeJson: unknown): Stats {
     stats.current = Math.round(runner.distanceMeter.getActualDistance(Math.ceil(runner.distanceRan)));
     stats.best = Math.max(stats.best, stats.current);
   };
-  // Restarts after a crash (the game loop stops while crashed).
+  // Records the finished run, then restarts (the game loop stops while crashed).
   const watch = () => {
     if (r.crashed) {
       if (!crashedAt) {
         crashedAt = performance.now();
         stats.crashes++;
+        stats.history.push({
+          startedAt: stats.runStartedAt, endedAt: Date.now(), score: stats.current,
+          speed: Math.round(r.currentSpeed * 100) / 100, killedBy: describeObstacle(r.horizon?.obstacles?.[0]),
+        });
+        if (stats.history.length > 200) stats.history.shift();
         press('jump', false);
         press('down', false);
       } else if (performance.now() - crashedAt > 1500) {
         crashedAt = 0;
         stats.runs++;
+        stats.current = 0;
+        stats.runStartedAt = Date.now();
         press('jump', true); // restart, like pressing space on the game-over screen
         press('jump', false);
       }

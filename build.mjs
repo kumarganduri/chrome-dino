@@ -14,7 +14,8 @@
 //
 // The vendored files import siblings as './x.js'; we map those to the .ts files.
 import * as esbuild from 'esbuild';
-import {cpSync, existsSync, mkdirSync, writeFileSync} from 'node:fs';
+import {cpSync, existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import path from 'node:path';
 
 const root = path.dirname(new URL(import.meta.url).pathname);
@@ -87,6 +88,21 @@ export async function build() {
     esbuild.build({...common, entryPoints: [path.join(root, 'src/web/core.ts')], format: 'esm', platform: 'browser', outfile: path.join(root, 'dist/core.js')}),
     esbuild.build({...common, entryPoints: [path.join(root, 'src/web/inject.ts')], format: 'iife', globalName: 'DinoForever', platform: 'browser', outfile: path.join(root, 'dist/inject.js')}),
   ]);
+  stampVersions();
+}
+
+// GitLab Pages lets browsers cache files for 10 minutes. Stamp index.html's
+// references with content hashes so a cached page always loads the script and
+// styles that belong to it, and a new page never runs against old ones.
+function stampVersions() {
+  const pub = path.join(root, 'public');
+  const indexPath = path.join(pub, 'index.html');
+  let html = readFileSync(indexPath, 'utf8');
+  for (const file of ['app.js', 'style.css', 'config.js']) {
+    const hash = createHash('sha256').update(readFileSync(path.join(pub, file))).digest('hex').slice(0, 10);
+    html = html.replace(new RegExp(`(src|href)="${file.replace('.', '\\.')}"`, 'g'), `$1="${file}?v=${hash}"`);
+  }
+  writeFileSync(indexPath, html);
 }
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {

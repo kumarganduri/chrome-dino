@@ -2,7 +2,7 @@
 # One-time go-live. Run only after approving: it publishes code and creates
 # paid infrastructure.
 #
-#   1. push to gitlab.com/kumarganduri/chrome-dino (repo-local SSH key)
+#   1. push to gitlab.com/kumarganduri14/chrome-dino (repo-local SSH key)
 #   2. create Fly app dino-forever-kumar (sin) + 1 GB volume, set DEPLOY_KEY
 #   3. deploy the live server
 #   4. write ~/.dino-forever.env so trainer/sync.ts can talk to the server
@@ -43,4 +43,4 @@ node trainer/sync.ts --once
 
 echo
 echo "Live server: https://$APP.fly.dev   (serves the full site too)"
-echo "Pages:       https://kumarganduri.gitlab.io/chrome-dino   (after making the project public + CI runs)"
+echo "Pages:       https://kumarganduri14.gitlab.io/chrome-dino   (after making the project public + CI runs)"

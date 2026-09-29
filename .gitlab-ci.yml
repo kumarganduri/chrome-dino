@@ -3,7 +3,7 @@
 #   test         unit tests (engine, NEAT, attack, server verification, vendor hashes)
 #   determinism  Node vs Chromium vs Firefox vs WebKit, identical per-frame hashes
 #                (runs on the default branch and on MRs touching the engine)
-#   pages        builds the site into public/ → https://kumarganduri.gitlab.io/chrome-dino
+#   pages        builds the site into public/ → https://kumarganduri14.gitlab.io/chrome-dino
 #   deploy       builds and deploys the live server to Fly (needs FLY_API_TOKEN)
 #
 # CI/CD variables (Settings → CI/CD → Variables):

@@ -8,7 +8,7 @@ primary_region = "sin"
 
 [env]
   DATA_DIR = "/data"
-  ALLOWED_ORIGINS = "https://kumarganduri.gitlab.io,https://dino-forever-kumar.fly.dev"
+  ALLOWED_ORIGINS = "https://kumarganduri14.gitlab.io,https://dino-forever-kumar.fly.dev"
 
 [[mounts]]
   source = "dino_data"

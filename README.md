@@ -2,7 +2,7 @@
 
 **Chrome's real T-Rex game, playing itself live, learning from every crash until it never crashes.**
 
-### ▶ [Watch it live](https://kumarganduri.gitlab.io/chrome-dino)
+### ▶ [Watch it live](https://kumarganduri14.gitlab.io/chrome-dino)
 
 ![dino.forever](docs/screenshot.png)
 
@@ -103,7 +103,7 @@ node --test test/e2e/server-http.test.ts      # the real server over HTTP
 
 ## Deploy
 
-- **Pages:** every push to `main` builds `public/` and publishes it to `https://kumarganduri.gitlab.io/chrome-dino` (`.gitlab-ci.yml`).
+- **Pages:** every push to `main` builds `public/` and publishes it to `https://kumarganduri14.gitlab.io/chrome-dino` (`.gitlab-ci.yml`).
 - **Live server:** `fly launch --no-deploy --copy-config`, then `fly volumes create dino_data --region sin --size 1`, then `fly deploy`. Or set the `FLY_API_TOKEN` CI variable and CI deploys on push.
 - **Trainer ↔ server:** put `DINO_SERVER` and `DINO_DEPLOY_KEY` in `~/.dino-forever.env` and run `node trainer/sync.ts`. It uploads progress and champions, and pulls live crashes and verified kills into the curriculum.
 

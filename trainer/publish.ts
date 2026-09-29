@@ -21,9 +21,21 @@ const history = readJson<any[]>(from('history.json'), []);
 const graveyard = readJson<any[]>(from('graveyard.json'), []);
 const curriculum = readJson<any[]>(from('curriculum.json'), []);
 const oracle = readJson<any>('out/oracle-sweep.json', null);
-const validation = readJson<any>('out/validation.json', null);
+const latestValidation = readJson<any>('out/validation.json', null);
+const validationOf = (v: number | undefined) => (v ? readJson<any>(`out/validation-v${v}.json`, null) : null);
 
-writeJsonAtomic(to('champion.json'), champion); // null until a brain passes the gate
+// Only a champion with a perfect held-out validation (trainer/validate.ts)
+// replaces the published one: passing the gate is necessary, not sufficient
+// (v4 passed every gate stage, then crashed 5× in 2,000 unseen 3-hour runs).
+const published = readJson<any>(to('champion.json'), null);
+const candidateValidation = validationOf(champion?.version) ?? (latestValidation?.version === champion?.version ? latestValidation : null);
+const validated = champion && candidateValidation && candidateValidation.survived === candidateValidation.seeds;
+if (champion && (validated || !published)) {
+  writeJsonAtomic(to('champion.json'), champion);
+} else if (champion && published) {
+  console.log(`keeping published champion v${published.version}: v${champion.version} has no perfect held-out validation ` +
+    `(run node trainer/validate.ts --seeds 2000 --minutes 180)`);
+}
 if (leader) writeJsonAtomic(to('leader.json'), leader);
 
 const step = Math.max(1, Math.ceil(history.length / 600));
@@ -44,13 +56,13 @@ writeJsonAtomic(to('stats.json'), {
   generations: history.length ? history.at(-1).gen + 1 : 0,
   framesSimulated: history.reduce((a, r) => a + (r.framesSimulated ?? 0), 0),
   curriculum: curriculum.length,
-  championVersion: champion?.version ?? null,
+  championVersion: readJson<any>(to('champion.json'), null)?.version ?? null,
   publishedAt: new Date().toISOString(),
   oracle: oracle ? {seeds: oracle.summary.seeds, survived: oracle.summary.survived, gameHoursPerSeed: oracle.summary.gameHoursPerSeed} : null,
   // Held-out validation of the published champion (trainer/validate.ts), only if it matches.
-  validation: validation && champion && validation.version === champion.version ?
+  validation: ((validation) => validation ?
     {seeds: validation.seeds, survived: validation.survived, minutes: validation.minutesAtTopSpeed,
-      gameHours: Math.round(validation.gameHours), crashes: validation.crashes.length} : null,
+      gameHours: Math.round(validation.gameHours), crashes: validation.crashes.length} : null)(validationOf(readJson<any>(to('champion.json'), null)?.version)),
 });
-console.log(`published: champion ${champion ? 'v' + champion.version : 'none'}, leader gen ${leader?.gen ?? '-'}, ` +
+console.log(`published: champion v${readJson<any>(to('champion.json'), null)?.version ?? '-'}, leader gen ${leader?.gen ?? '-'}, ` +
   `${thin.length} history rows, ${replayable.length} graves, ${lessons.length} lessons`);

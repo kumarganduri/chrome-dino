@@ -239,7 +239,7 @@ async function main() {
     } else {
       const note = document.createElement('p');
       note.className = 'muted';
-      note.textContent = api ? 'Server unreachable. Showing this tab only.' : 'Running locally. Records below are from this tab.';
+      note.textContent = 'The live global board appears when the live server is running. Records below are from this tab.';
       parts.push(note);
       parts.push(list('This tab', [
         {name: 'champion, longest run', value: Math.max(localRecords.longest, view.game?.frame ?? 0) / 60},
@@ -306,11 +306,16 @@ async function main() {
         case 'crash': break; // the page detects the same crash itself (deterministic)
       }
     };
-    live.state().then(applyState).catch(() => {
+    // Open the live stream only once the server answers; otherwise stay in
+    // local mode quietly instead of retrying forever.
+    live.state().then((s) => {
+      applyState(s);
+      live.connect();
+    }).catch(() => {
       pill.dataset.state = 'offline';
-      pillText.textContent = 'offline · local';
+      pillText.textContent = 'local';
+      renderBoard();
     });
-    live.connect();
   } else {
     pillText.textContent = 'local';
   }

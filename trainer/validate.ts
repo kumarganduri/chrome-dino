@@ -33,4 +33,5 @@ const summary = {
   wallSeconds: (Date.now() - t0) / 1000,
 };
 writeJsonAtomic('out/validation.json', summary);
+if (summary.version) writeJsonAtomic(`out/validation-v${summary.version}.json`, summary);
 console.log(JSON.stringify(summary, null, 1));

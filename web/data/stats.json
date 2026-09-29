@@ -1,1 +1,1 @@
-{"generations":1845,"framesSimulated":25764886349,"curriculum":374,"championVersion":3,"publishedAt":"2026-09-28T22:46:34.959Z","oracle":{"seeds":200,"survived":200,"gameHoursPerSeed":4.62962962962963},"validation":{"seeds":2000,"survived":2000,"minutes":180,"gameHours":6065,"crashes":0}}
+{"generations":3408,"framesSimulated":146656248319,"curriculum":429,"championVersion":3,"publishedAt":"2026-09-29T15:12:06.197Z","oracle":{"seeds":200,"survived":200,"gameHoursPerSeed":4.62962962962963},"validation":{"seeds":2000,"survived":2000,"minutes":180,"gameHours":6065,"crashes":0}}

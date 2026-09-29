@@ -25,8 +25,9 @@
 | **Determinism**: Node vs Chrome vs Firefox vs WebKit | identical per-frame state, sense and key hashes |
 
 Honest notes:
+- **v4 is not published.** It passed every gate stage, including 1,000/1,000 held-out tracks, but then crashed 5 times in 2,000 unseen 3-hour runs. v3 stays published, and `trainer/publish.ts` now only replaces the champion with one whose 2,000-track validation is perfect.
 - **v1 wasn't perfect.** It passed the gate but crashed once in 6,062 game-hours of held-out play: it jumped into a high pterodactyl. Promotion now also requires 1,000 fresh held-out tracks × 60 min.
-- **Tallies:** training has simulated **25+ billion frames** over **1,800+ generations** on one laptop.
+- **Tallies:** training has simulated **25+ billion frames** over **2,700+ generations** on one laptop.
 
 ## What's on the page
 

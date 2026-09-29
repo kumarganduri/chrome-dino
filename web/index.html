@@ -82,6 +82,7 @@
     </div>
     <div class="record" id="real-record" hidden>
       <p class="record-line"><b>🏆 Record</b> <span id="real-record-text"></span></p>
+      <div class="top3" id="real-top" aria-label="Top 3 runs"></div>
       <details class="history">
         <summary>Run history (<span id="real-total">0</span> runs)</summary>
         <table>
@@ -172,6 +173,12 @@
     </ol>
   </section>
 </main>
+
+<dialog class="shot-dialog" id="shot-dialog" aria-label="Run screenshot">
+  <form method="dialog"><button class="shot-close" aria-label="Close">✕</button></form>
+  <img id="shot-big" alt="">
+  <p class="caption" id="shot-cap"></p>
+</dialog>
 
 <dialog class="play" id="play">
   <form method="dialog" class="play-head">

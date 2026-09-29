@@ -7,7 +7,8 @@
 //
 // Every run is recorded: start and end time (wall clock), final score, speed
 // and the obstacle that ended it. After a crash the game restarts itself
-// 1.5 s later, like pressing Space on the game-over screen.
+// 2.5 s later (time for the streamer to screenshot the game-over screen),
+// like pressing Space on the game-over screen.
 import {Network, validateGenome} from '../neat/genome.ts';
 import {BrainPolicy} from '../neat/policy.ts';
 
@@ -89,7 +90,7 @@ export function start(genomeJson: unknown): Stats {
         if (stats.history.length > 200) stats.history.shift();
         press('jump', false);
         press('down', false);
-      } else if (performance.now() - crashedAt > 1500) {
+      } else if (performance.now() - crashedAt > 2500) {
         crashedAt = 0;
         stats.runs++;
         stats.current = 0;

@@ -391,3 +391,19 @@ button { font: inherit; color: inherit; }
 .steps-inline { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; }
 kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--paper); color: var(--ink); }
 #btn-autopilot { padding: 4px 10px; font-size: 13px; margin-left: 4px; }
+
+/* Top 3 runs with proof screenshots */
+.top3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 10px 0 12px; }
+.top-card { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); text-align: left; cursor: pointer; }
+.top-card:hover { border-color: var(--muted); }
+.top-card[disabled] { cursor: default; }
+.top-thumb { width: 100%; aspect-ratio: 740 / 300; object-fit: cover; border-radius: 6px; background: var(--line); display: block; }
+.top-thumb.none { display: grid; place-items: center; font: 11px var(--mono); color: var(--muted); }
+.top-rank { font: 600 12px var(--mono); }
+.top-meta { font: 11px/1.4 var(--mono); color: var(--muted); }
+.top-card.live-now { border-color: var(--good); }
+.shot-dialog { max-width: min(940px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--card); color: var(--ink); }
+.shot-dialog::backdrop { background: rgb(0 0 0 / 0.6); }
+.shot-dialog img { display: block; width: 100%; height: auto; border-radius: 8px; cursor: zoom-out; }
+.shot-close { float: right; border: 0; background: transparent; font-size: 18px; cursor: pointer; color: var(--muted); }
+@media (max-width: 700px) { .top3 { grid-template-columns: minmax(0, 1fr); } }

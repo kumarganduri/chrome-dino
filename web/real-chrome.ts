@@ -11,6 +11,7 @@ interface RunRow {
   killedBy?: string;
   ongoing?: boolean;
   stopped?: boolean;
+  shot?: string | null; // proof screenshot served by the streamer at /shot/<file>
 }
 
 interface Stats {
@@ -25,6 +26,7 @@ interface Stats {
   record?: RunRow;
   totalRuns?: number;
   recent?: RunRow[];
+  top?: RunRow[];
 }
 
 const endedBy = (r: RunRow) => (r.stopped ? 'no crash (stream restarted)' : `crash: ${r.killedBy ?? 'obstacle'}`);
@@ -67,7 +69,60 @@ export function startRealChromePanel(): void {
   const recordText = $('#real-record-text');
   const total = $('#real-total');
   const tbody = $('#real-history');
+  // Top 3 runs as thumbnails; clicking opens the full screenshot.
+  const top = $('#real-top');
+  const dialog = document.getElementById('shot-dialog') as HTMLDialogElement;
+  const big = $('#shot-big') as HTMLImageElement;
+  const cap = $('#shot-cap');
+  big.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+  let topKey = '';
+  const renderTop = (st: Stats) => {
+    const rows = st.top ?? [];
+    const key = JSON.stringify(rows.map((r) => [r.startedAt, r.ongoing ? 'live' : r.score, r.shot]));
+    const medal = ['🥇', '🥈', '🥉'];
+    const describe = (r: RunRow) => `score ${formatInt(r.score)} · ${formatDuration((r.ongoing ? st.now : (r.endedAt ?? st.now)) - r.startedAt)}` +
+      ` · ${when(r.startedAt)} → ${r.ongoing ? 'still running' : when(r.endedAt ?? st.now)} · ${r.ongoing ? 'live now' : endedBy(r)}`;
+    if (key === topKey) {
+      // Only the live run's numbers change: update text in place, keep images.
+      top.querySelectorAll<HTMLElement>('.top-card').forEach((card, i) => {
+        const r = rows[i];
+        if (!r) return;
+        card.querySelector('.top-rank')!.textContent = `${medal[i]} ${formatInt(r.score)}`;
+        card.querySelector('.top-meta')!.textContent = describe(r);
+      });
+      return;
+    }
+    topKey = key;
+    top.replaceChildren(...rows.map((r, i) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = `top-card${r.ongoing ? ' live-now' : ''}`;
+      const src = r.shot ? `${base}/shot/${r.shot}` : null;
+      const thumb = src ? Object.assign(document.createElement('img'), {src, alt: `Run ${i + 1} screenshot`, loading: 'lazy'}) :
+        Object.assign(document.createElement('div'), {textContent: r.ongoing ? 'live now (see above)' : 'no picture'});
+      thumb.className = `top-thumb${src ? '' : ' none'}`;
+      const rank = Object.assign(document.createElement('span'), {className: 'top-rank', textContent: `${medal[i]} ${formatInt(r.score)}`});
+      const meta = Object.assign(document.createElement('span'), {className: 'top-meta', textContent: describe(r)});
+      card.append(thumb, rank, meta);
+      if (src) {
+        card.addEventListener('click', () => {
+          big.src = src;
+          big.alt = `Run screenshot: ${describe(r)}`;
+          cap.textContent = `${medal[i]} ${describe(r)}`;
+          dialog.showModal();
+        });
+      } else {
+        card.disabled = true;
+      }
+      return card;
+    }));
+  };
+
   const renderRecord = (st: Stats) => {
+    renderTop(st);
     if (!st.record) return;
     recordBox.hidden = false;
     const r = st.record;

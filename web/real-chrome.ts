@@ -2,6 +2,10 @@
 // playing chrome://dino with the champion (scripts/real-chrome-live.mjs),
 // relayed from one machine. Unlike the shared run, it uses Chrome's real clock
 // and randomness, so it can't be recomputed here; it is streamed.
+//
+// When no stream is configured (window.DINO_REAL_CHROME / ?realchrome=), the
+// panel becomes a static hall of fame from the archived runs in
+// data/real-chrome/ (history.json + proof screenshots).
 import {$, formatDuration, formatInt} from './runtime.ts';
 
 interface RunRow {
@@ -12,6 +16,8 @@ interface RunRow {
   ongoing?: boolean;
   stopped?: boolean;
   shot?: string | null; // proof screenshot served by the streamer at /shot/<file>
+  chrome?: string;
+  champion?: number;
 }
 
 interface Stats {
@@ -29,7 +35,12 @@ interface Stats {
   top?: RunRow[];
 }
 
-const endedBy = (r: RunRow) => (r.stopped ? 'no crash (stream restarted)' : `crash: ${r.killedBy ?? 'obstacle'}`);
+const BIRD_HEIGHT: Record<string, string> = {'50': 'high', '75': 'mid', '100': 'low'};
+const obstacleName = (k?: string) => {
+  const [type, y] = (k ?? 'obstacle').split('@');
+  return type === 'pterodactyl' ? `${BIRD_HEIGHT[y ?? ''] ?? ''} pterodactyl`.trim() : type!.replace(/([A-Z])/g, ' $1').toLowerCase();
+};
+const endedBy = (r: RunRow) => (r.stopped ? 'no crash (stream stopped)' : `crash: ${obstacleName(r.killedBy)}`);
 const when = (ms: number) => new Date(ms).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'});
 
 export function realChromeUrl(): string | null {
@@ -39,32 +50,8 @@ export function realChromeUrl(): string | null {
   return base ? base.replace(/\/$/, '') : null;
 }
 
-export function startRealChromePanel(): void {
-  const section = $('#real-chrome');
-  const base = realChromeUrl();
-  if (!base) return; // not configured: the panel stays hidden
-  section.hidden = false;
-  const img = $('#real-frame') as HTMLImageElement;
-  const status = $('#real-status');
-  const clock = $('#real-clock');
-  const score = $('#real-score');
-  const crashes = $('#real-crashes');
-  const since = $('#real-since');
-  let stats: Stats | null = null;
-  let offset = 0; // streamer clock − our clock
-  let lastEvent = 0;
-
-  const showStats = (next: Stats) => {
-    lastEvent = Date.now();
-    stats = next;
-    offset = stats.now - Date.now();
-    score.textContent = formatInt(stats.score);
-    crashes.textContent = formatInt(stats.crashes);
-    since.textContent = new Date(stats.streamingSince).toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'});
-    status.textContent = `live from one machine · ${stats.chrome} · champion v${stats.champion ?? '?'}`;
-    section.dataset.state = 'live';
-    renderRecord(stats);
-  };
+// Record line, top-3 thumbnails (click → full screenshot) and run history.
+function recordView(shotUrl: (file: string) => string): (st: Stats) => void {
   const recordBox = $('#real-record');
   const recordText = $('#real-record-text');
   const total = $('#real-total');
@@ -100,7 +87,7 @@ export function startRealChromePanel(): void {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = `top-card${r.ongoing ? ' live-now' : ''}`;
-      const src = r.shot ? `${base}/shot/${r.shot}` : null;
+      const src = r.shot ? shotUrl(r.shot) : null;
       const thumb = src ? Object.assign(document.createElement('img'), {src, alt: `Run ${i + 1} screenshot`, loading: 'lazy'}) :
         Object.assign(document.createElement('div'), {textContent: r.ongoing ? 'live now (see above)' : 'no picture'});
       thumb.className = `top-thumb${src ? '' : ' none'}`;
@@ -121,7 +108,7 @@ export function startRealChromePanel(): void {
     }));
   };
 
-  const renderRecord = (st: Stats) => {
+  return (st: Stats) => {
     renderTop(st);
     if (!st.record) return;
     recordBox.hidden = false;
@@ -143,6 +130,38 @@ export function startRealChromePanel(): void {
       }
       return tr;
     }));
+  };
+}
+
+export function startRealChromePanel(): void {
+  const base = realChromeUrl();
+  if (!base) {
+    void startHallOfFame();
+    return;
+  }
+  const section = $('#real-chrome');
+  section.hidden = false;
+  const img = $('#real-frame') as HTMLImageElement;
+  const status = $('#real-status');
+  const clock = $('#real-clock');
+  const score = $('#real-score');
+  const crashes = $('#real-crashes');
+  const since = $('#real-since');
+  let stats: Stats | null = null;
+  let offset = 0; // streamer clock − our clock
+  let lastEvent = 0;
+  const renderRecord = recordView((file) => `${base}/shot/${file}`);
+
+  const showStats = (next: Stats) => {
+    lastEvent = Date.now();
+    stats = next;
+    offset = stats.now - Date.now();
+    score.textContent = formatInt(stats.score);
+    crashes.textContent = formatInt(stats.crashes);
+    since.textContent = new Date(stats.streamingSince).toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'});
+    status.textContent = `live from one machine · ${stats.chrome} · champion v${stats.champion ?? '?'}`;
+    section.dataset.state = 'live';
+    renderRecord(stats);
   };
   const offline = () => {
     section.dataset.state = 'offline';
@@ -190,4 +209,54 @@ export function startRealChromePanel(): void {
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
+}
+
+// The stream has ended for good: show its archived runs instead.
+async function startHallOfFame(): Promise<void> {
+  let archive: {runs: RunRow[]} | null = null;
+  try {
+    const res = await fetch('data/real-chrome/history.json');
+    if (res.ok) archive = (await res.json()) as {runs: RunRow[]};
+  } catch { /* no archive: keep the panel hidden */ }
+  const runs = archive?.runs ?? [];
+  if (!runs.length) return;
+  const section = $('#real-chrome');
+  section.hidden = false;
+  section.dataset.state = 'archive';
+  const shotUrl = (file: string) => `data/real-chrome/shots/${file}`;
+  const byScore = runs.slice().sort((a, b) => b.score - a.score);
+  const record = byScore[0]!;
+  const first = Math.min(...runs.map((r) => r.startedAt));
+  const last = Math.max(...runs.map((r) => r.endedAt ?? r.startedAt));
+  const hours = runs.reduce((t, r) => t + ((r.endedAt ?? r.startedAt) - r.startedAt), 0) / 3_600_000;
+  const day = (ms: number) => new Date(ms).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+
+  $('#real-title').textContent = 'Literal chrome://dino: hall of fame';
+  $('#real-sub').textContent = `A real Google Chrome tab on chrome://dino, played by the same champion with Chrome's real clock and randomness, ` +
+    `streamed live from one Mac from ${day(first)} to ${day(last)}. The stream has ended; these are its results, kept for good.`;
+  $('#real-status').textContent = 'archived';
+  const img = $('#real-frame') as HTMLImageElement;
+  if (record.shot) {
+    img.src = shotUrl(record.shot);
+    img.alt = `chrome://dino at the end of the record run (score ${formatInt(record.score)})`;
+  }
+  $('#real-frame-cap').hidden = false;
+  $('#real-frame-cap').textContent = `The record run's last frame. Chrome's own counter shows only 6 digits, so ${formatInt(record.score)} reads as ${String(record.score % 1_000_000).padStart(6, '0')}.`;
+  const labels: [string, string][] = [
+    ['Record score', formatInt(record.score)],
+    ['Record lasted', formatDuration((record.endedAt ?? record.startedAt) - record.startedAt)],
+    ['Crashes', `${formatInt(runs.filter((r) => !r.stopped).length)} in ${hours.toFixed(1)} h`],
+    ['Runs', formatInt(runs.length)],
+  ];
+  const stats = $('#real-stats');
+  stats.replaceChildren(...labels.map(([dt, dd]) => {
+    const div = document.createElement('div');
+    div.append(Object.assign(document.createElement('dt'), {textContent: dt}), Object.assign(document.createElement('dd'), {textContent: dd}));
+    return div;
+  }));
+  recordView(shotUrl)({
+    chrome: record.chrome ?? '', champion: record.champion ?? null, streamingSince: first, runStartedAt: record.startedAt,
+    now: last, score: record.score, best: record.score, crashes: runs.filter((r) => !r.stopped).length,
+    record, totalRuns: runs.length, recent: runs.slice().reverse(), top: byScore.slice(0, 3),
+  });
 }

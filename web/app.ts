@@ -50,7 +50,7 @@ function setPressed(group: HTMLElement, btn: HTMLElement) {
 
 // A shared run needs no server: (seed, start time, champion) fix every frame,
 // so every browser computes the same run from the wall clock, starting from
-// the latest published hourly checkpoint (trainer/shared-run.ts).
+// the latest published checkpoint (every 4 hours) (trainer/shared-run.ts).
 interface SharedRun {
   seed: number;
   startWall: number;
@@ -165,6 +165,20 @@ async function main() {
   } else if (new URLSearchParams(location.search).has('fresh') || !(await joinSharedRun())) {
     startFreshRun();
   }
+
+  // Top call to action: ?fresh=1 always opens a brand-new run; share it as a link.
+  const freshLink = new URL('?fresh=1', location.href).href;
+  const ctaShare = $('#cta-share');
+  if (new URLSearchParams(location.search).has('fresh')) $('#cta-run').textContent = '▶ Start another fresh run';
+  ctaShare.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(freshLink);
+      ctaShare.textContent = 'Link copied ✓';
+    } catch {
+      prompt('Copy this link:', freshLink);
+    }
+    setTimeout(() => (ctaShare.textContent = 'Copy link'), 2500);
+  });
 
   // Autopilot for a visitor's own chrome://dino (pasted into DevTools).
   const autopilotBtn = $('#btn-autopilot');

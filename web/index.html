@@ -14,6 +14,10 @@
 <header class="top">
   <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span><span>dino<span class="brand-dot">.forever</span></span></a>
   <p class="tagline">Chrome's real T-Rex game, learning live to never crash.</p>
+  <div class="cta">
+    <a class="btn primary cta-run" id="cta-run" href="?fresh=1" title="A brand-new random track from zero, played by the champion in your browser">▶ Start your own live run</a>
+    <button class="btn" id="cta-share" type="button" title="Copy a link that opens a brand-new run">Copy link</button>
+  </div>
   <div class="live" id="live-pill" data-state="offline">
     <span class="live-dot" aria-hidden="true"></span>
     <span id="live-text">local</span>
@@ -48,32 +52,35 @@
   <section class="card explain" aria-labelledby="explain-title">
     <h2 id="explain-title">What you're watching</h2>
     <ol class="modes">
-      <li id="mode-shared"><b>The shared live run</b> (top). One run of Chrome's dino game, started <span class="shared-since">last night</span> and never stopped. Everyone who opens this page sees the same run at the same moment: your browser computes it from the seed and the clock, starting from an hourly checkpoint, so nothing needs to stay open anywhere. It has been simulated ahead and verified crash-free for the coming week.</li>
-      <li id="mode-real"><b>Literal chrome://dino</b> (below, when streaming). A real Google Chrome tab on <code>chrome://dino</code> on one computer, played by the same brain with Chrome's real clock and randomness, streamed live. It can't be recomputed elsewhere, so it only appears while that computer streams.</li>
+      <li id="mode-shared"><b>The shared live run</b> (top). One run of Chrome's dino game, started <span class="shared-since">last night</span> and never stopped. Everyone who opens this page sees the same run at the same moment: your browser computes it from the seed and the clock, starting from a checkpoint saved every 4 hours, so nothing needs to stay open anywhere. The whole run has been simulated a year ahead and verified crash-free through Oct 2027.</li>
+      <li id="mode-real"><b>Literal chrome://dino: hall of fame</b> (below). For four days a real Google Chrome tab on <code>chrome://dino</code>, on one Mac, was played by the same brain with Chrome's real clock and randomness and streamed live here. The stream has ended; its record (3,961,627 points over 56 hours), top runs with screenshots and full history stay below.</li>
       <li><b>Your own fresh run.</b> Press <em>Start a fresh run</em> to watch the champion start a brand-new random track from zero, in your browser only (<em>Back to the shared run</em> returns you), or <a href="?fresh=1" target="_blank" rel="noopener">open a fresh run in a new tab ↗</a>. It runs this project's code with Chromium's dino, entirely in your browser.</li>
       <li><b>Your own real chrome://dino.</b> Browsers don't let web pages open or control <code>chrome://</code> pages, so this takes 20 seconds by hand:
         <button class="btn" id="btn-autopilot" type="button">Copy autopilot</button> <span class="caption" id="autopilot-status"></span>
         <ol class="steps-inline">
           <li>Open a new tab and type <code>chrome://dino</code> in the address bar.</li>
           <li>Open the console: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> (Windows/Linux) or <kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>J</kbd> (Mac). If Chrome asks, type <code>allow pasting</code> first.</li>
-          <li>Paste and press <kbd>Enter</kbd>. The champion takes over your real Chrome dino, with the same code as the live stream above.</li>
+          <li>Paste and press <kbd>Enter</kbd>. The champion takes over your real Chrome dino, with the same code that set the hall-of-fame record below.</li>
         </ol>
       </li>
     </ol>
-    <p class="sub">The game is Chromium's own T-Rex code, unedited. The brain sees only what's on screen (the next obstacles, its height, the speed) and presses jump or duck. It never knows the future.</p>
+    <p class="sub">Share your own run: <a href="?fresh=1">this link</a> always opens a brand-new run. The game is Chromium's own T-Rex code, unedited. The brain sees only what's on screen (the next obstacles, its height, the speed) and presses jump or duck. It never knows the future.</p>
   </section>
 
   <section class="card real" id="real-chrome" hidden data-state="connecting">
     <header class="card-head">
       <div>
-        <h2>Literal chrome://dino, live from one machine</h2>
-        <p class="sub">A real Google Chrome tab on <code>chrome://dino</code>, played by the same champion with Chrome's real clock and randomness, streamed as it happens.</p>
+        <h2 id="real-title">Literal chrome://dino, live from one machine</h2>
+        <p class="sub" id="real-sub">A real Google Chrome tab on <code>chrome://dino</code>, played by the same champion with Chrome's real clock and randomness, streamed as it happens.</p>
       </div>
       <p class="caption" id="real-status">connecting…</p>
     </header>
     <div class="real-body">
-      <div class="stage small real-stage"><img id="real-frame" alt="Live stream of the chrome://dino tab"></div>
-      <dl class="stats real-stats">
+      <figure class="real-fig">
+        <div class="stage small real-stage"><img id="real-frame" alt="Live stream of the chrome://dino tab"></div>
+        <figcaption class="caption" id="real-frame-cap" hidden></figcaption>
+      </figure>
+      <dl class="stats real-stats" id="real-stats">
         <div><dt>Since last crash</dt><dd id="real-clock">–</dd></div>
         <div><dt>Score</dt><dd id="real-score">–</dd></div>
         <div><dt>Crashes</dt><dd id="real-crashes">–</dd></div>

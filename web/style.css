@@ -78,6 +78,9 @@ button { font: inherit; color: inherit; }
   filter: invert(var(--canvas-invert));
 }
 .tagline { margin: 0; color: var(--muted); flex: 1; }
+.cta { display: flex; gap: 8px; align-items: center; }
+.cta-run { font-size: 15px; padding: 10px 18px; white-space: nowrap; }
+.cta-run:hover { text-decoration: none; opacity: 0.9; }
 .live {
   display: inline-flex;
   align-items: center;
@@ -357,7 +360,9 @@ button { font: inherit; color: inherit; }
   .stage-tag { top: 10px; left: 12px; }
   .hero .stage { padding-top: 28px; }
   .top, main, .foot { padding: 0 16px; }
-  .top { padding-top: 16px; padding-bottom: 12px; }
+  .top { padding-top: 16px; padding-bottom: 12px; flex-wrap: wrap; gap: 12px; }
+  .cta { order: 3; width: 100%; }
+  .cta-run { flex: 1; text-align: center; }
   .steps { grid-template-columns: minmax(0, 1fr); }
   .card-head { flex-direction: column; }
   .clock-card, .card { padding: 14px; }
@@ -371,6 +376,8 @@ button { font: inherit; color: inherit; }
 .real-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(200px, 1fr); gap: 16px; align-items: center; }
 .real-stage { display: flex; align-items: center; justify-content: center; min-height: 120px; }
 .real-stage img { display: block; width: 100%; height: auto; border-radius: 6px; }
+.real-fig { margin: 0; }
+.real-fig figcaption { margin-top: 6px; }
 .real[data-state="offline"] .real-stage img { opacity: 0.35; filter: grayscale(1); }
 .real-stats { grid-template-columns: repeat(2, 1fr); margin: 0; }
 @media (max-width: 900px) { .real-body { grid-template-columns: minmax(0, 1fr); } }

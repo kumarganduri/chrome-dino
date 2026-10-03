@@ -9,7 +9,8 @@
 //   web/data/live/run.json          seed, start, champion, checkpoint spacing, verified window
 //   web/data/live/<frame>.json      snapshot at every multiple of CHECKPOINT_EVERY
 //
-//   node trainer/shared-run.ts --seed S --start MS [--days 8] [--server-db /tmp/dino-srv/dino.sqlite]
+//   node trainer/shared-run.ts --seed S --start MS [--days 8] [--every 1] [--out web/data/live]
+//                                [--server-db /tmp/dino-srv/dino.sqlite]
 import {parseArgs} from 'node:util';
 import {mkdirSync, rmSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
@@ -26,14 +27,15 @@ const {values: args} = parseArgs({options: {
   champion: {type: 'string', default: 'web/data/champion.json'},
   out: {type: 'string', default: 'web/data/live'},
   'server-db': {type: 'string', default: ''},
+  every: {type: 'string', default: '1'}, // hours between checkpoints
 }});
-const CHECKPOINT_EVERY = 216_000; // 1 hour of game time
+const CHECKPOINT_EVERY = Math.round(Number(args.every) * 216_000); // frames between checkpoints
 const seed = Number(args.seed);
 const startWall = Number(args.start);
 if (!Number.isInteger(seed) || !Number.isFinite(startWall)) throw new Error('--seed and --start (ms since epoch) are required');
 const champion = readJson<any>(args.champion!, null);
 const genome = validateGenome(champion?.genome);
-const endFrame = Number(args.days) * 24 * CHECKPOINT_EVERY;
+const endFrame = Number(args.days) * 24 * 216_000;
 
 const engine = await loadEngine();
 const policy = new BrainPolicy(new Network(genome));
@@ -67,8 +69,8 @@ while (g.frame < endFrame) {
   if (!g.step(policy.keys(g.runner))) {
     throw new Error(`the champion crashes at frame ${g.frame} (${(g.frame / 216000).toFixed(2)} h): not publishing`);
   }
-  if (g.frame % (CHECKPOINT_EVERY * 24) === 0) {
-    process.stdout.write(`\r${(g.frame / CHECKPOINT_EVERY / 24).toFixed(0)} days simulated, no crash`);
+  if (g.frame % (216_000 * 24) === 0) {
+    process.stdout.write(`\r${(g.frame / 216_000 / 24).toFixed(0)} days simulated, no crash`);
   }
 }
 writeJsonAtomic(`${args.out}/${g.frame}.json`, g.snapshot());

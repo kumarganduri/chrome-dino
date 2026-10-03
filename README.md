@@ -2,7 +2,7 @@
 
 **Chrome's real T-Rex game, playing itself live, learning from every crash until it never crashes.**
 
-### ▶ [Watch it live](https://kumarganduri14.gitlab.io/chrome-dino)
+### ▶ [Watch it live](https://kumarganduri14.gitlab.io/chrome-dino) · ▶ [Start your own live run](https://kumarganduri14.gitlab.io/chrome-dino/?fresh=1)
 
 ![dino.forever](docs/screenshot.png)
 
@@ -12,21 +12,22 @@ Open the link above; nothing to install.
 
 1. **The shared live run** (top of the page).
    - One run of Chrome's dino, **started Sep 29, 2026 at 02:45 (UTC+4) and never stopped**. Everyone sees the same run at the same moment, with the same *time since last crash* clock and the same score.
-   - No server or open tab is needed: your browser computes the run from its seed and the clock, starting from the latest hourly checkpoint.
-   - It was simulated ahead and verified crash-free for the following week ([how](#one-shared-run-no-server-needed)).
-2. **Literal `chrome://dino`, live from one machine** (the panel below it).
-   - A real Google Chrome tab on `chrome://dino`, played by the same brain with Chrome's real clock and randomness, streamed live from one computer.
-   - It can't be recomputed elsewhere, so it appears only while that computer streams. On strict networks it switches to a 1-frame-per-second compatibility mode.
-   - **It restarts itself after a crash** (1.5 s later, like pressing Space).
-   - **Every run is recorded** (start, end, duration, score, and whether it ended in a crash and on what obstacle). The panel shows the 🏆 **record** and the run history, which persist across restarts.
-3. **Your own fresh run.** Press **Start a fresh run** to watch the champion begin a brand-new random track from zero, in your browser only, or open one in a new tab with `?fresh=1`. **Back to the shared run** returns to the shared one.
+   - No server or open tab is needed: your browser computes the run from its seed and the clock, starting from the latest checkpoint (one every 4 hours).
+   - It was simulated **a full year ahead and verified crash-free through Oct 4, 2027 at 02:45 (UTC+4)** ([how](#one-shared-run-no-server-needed)).
+2. **Literal `chrome://dino`: hall of fame** (the panel below it).
+   - From Sep 29 to Oct 2, 2026, a real Google Chrome tab on `chrome://dino` was played by the same brain, with Chrome's real clock and randomness, and streamed live from one Mac.
+   - The stream has ended. Its results are archived as static files (`web/data/real-chrome/`):
+     - 🏆 **record: 3,961,627 points over 56.4 hours**, ended by a high pterodactyl;
+     - the top 3 runs, with screenshots;
+     - the full history: 5 runs, 2 crashes in 74.7 hours.
+3. **Your own fresh run.** Press **▶ Start your own live run** at the top of the page (or share [`?fresh=1`](https://kumarganduri14.gitlab.io/chrome-dino/?fresh=1)) to watch the champion begin a brand-new random track from zero, in your browser only, or open one in a new tab with `?fresh=1`. **Back to the shared run** returns to the shared one.
 4. **Your own real `chrome://dino`.** Browsers don't let web pages open or control `chrome://` pages, so:
    1. Press **Copy autopilot** on the page.
    2. Open `chrome://dino` in a new tab.
    3. Open DevTools' console (Ctrl+Shift+J or ⌥⌘J; type `allow pasting` if Chrome asks).
    4. Paste and press Enter.
 
-   The champion then plays your real Chrome dino, using the same driver code (`src/web/inject.ts`) as the live stream.
+   The champion then plays your real Chrome dino, using the same driver code (`src/web/inject.ts`) that set the hall-of-fame record.
 
 The brain sees only what's on screen (the next obstacles, its height, the speed) and presses jump or duck. It never knows the future.
 
@@ -39,14 +40,14 @@ The brain sees only what's on screen (the next obstacles, its height, the speed)
 - **Everyone watches the same run.** Every browser re-simulates the identical game frame for frame from a seed and a checkpoint, so the *time since last crash* clock is shared by all viewers.
 - **You can try to kill it.** Choose which obstacles Chrome spawns next. With the optional live server, attacks are replayed and verified, and a verified kill goes on a global board and into the training data.
 
-### Running the literal chrome://dino stream (operator notes)
+### Running the literal chrome://dino stream again (operator notes)
 
 ```bash
 node scripts/real-chrome-live.mjs --port 8090                  # real Chrome tab + stream
 cloudflared tunnel --no-autoupdate --url http://localhost:8090  # public https address
 ```
 
-Put the printed `https://….trycloudflare.com` address in `web/config.js` (`DINO_REAL_CHROME`) and push. The machine must stay on, awake and online; the address changes whenever the tunnel restarts.
+Put the printed `https://….trycloudflare.com` address in `web/config.js` (`DINO_REAL_CHROME`) and push. The panel then switches from the hall of fame to the live stream. The machine must stay on, awake and online, and the address changes whenever the tunnel restarts. The stream restarts the game 2.5 s after a crash and keeps its history in `out/real-chrome-live-history.json`. To archive the history, copy that file and `out/real-chrome-shots/` into `web/data/real-chrome/`.
 
 ## Results (measured, not claimed)
 
@@ -56,11 +57,12 @@ Put the printed `https://….trycloudflare.com` address in `web/config.js` (`DIN
 | **Every past crash** (360 lessons, 3 s before impact) | **360 / 360** cleared |
 | **Held-out validation**: 2,000 unseen tracks × 3 h at top speed | **2,000 / 2,000**, 6,065 game-hours, zero crashes |
 | **Is forever even possible?** Lookahead oracle, 200 tracks × 4.6 h | **200 / 200**, no unclearable obstacle sequence found |
-| **Literal chrome://dino** in Google Chrome 154, real time and real randomness | 20 min, zero crashes, score 23,108 (live demo, not replayable) |
+| **Literal chrome://dino** in Google Chrome 154, real time and real randomness | record **3,961,627** points over **56.4 h**; 2 crashes (both high pterodactyls) in 74.7 h of streaming (not replayable) |
 | **Determinism**: Node vs Chrome vs Firefox vs WebKit | identical per-frame state, sense and key hashes |
 
 Honest notes:
 - **v4 is not published.** It passed every gate stage, including 1,000/1,000 held-out tracks, but then crashed 5 times in 2,000 unseen 3-hour runs. v3 stays published, and `trainer/publish.ts` now only replaces the champion with one whose 2,000-track validation is perfect.
+- **Real Chrome is harder than the simulation.** In real `chrome://dino`, v3 crashed twice in 74.7 hours, both times on a high pterodactyl. Real Chrome has variable frame timing and true randomness, which the deterministic validations don't cover. The record run lasted 56.4 hours.
 - **v1 wasn't perfect.** It passed the gate but crashed once in 6,062 game-hours of held-out play: it jumped into a high pterodactyl. Promotion now also requires 1,000 fresh held-out tracks × 60 min.
 - **Tallies:** training has simulated **25+ billion frames** over **2,700+ generations** on one laptop.
 
@@ -69,8 +71,8 @@ Honest notes:
 Everyone who opens the page sees **the same run**, which started on **Sep 29, 2026 at 02:45 (UTC+4)**. It keeps going with no server and no tab open anywhere.
 
 - **Why it works:** the run is fully determined by its seed and the champion's brain, and the current frame by the wall clock.
-- **Proven in advance:** `trainer/shared-run.ts` simulated the run ahead of time and verified it **crash-free through Oct 6, 2026** (score ≈ 13.5 million by then). It also matched all 41 checkpoints saved by the live server that had been playing the same run, bit for bit.
-- **On page load:** each browser loads the latest hourly checkpoint (`web/data/live/`) and fast-forwards headlessly to "now", in well under a second.
+- **Proven in advance:** `trainer/shared-run.ts` simulated the run ahead of time and verified it **crash-free for 370 days, through Oct 4, 2027 at 02:45 (UTC+4)**: 1.92 billion frames, score ≈ 623 million by then, computed in 30 minutes on one core. An earlier 8-day version also matched all 41 checkpoints saved by the live server that had been playing the same run, bit for bit.
+- **On page load:** each browser loads the latest checkpoint (`web/data/live/`, one every 4 hours, 2,222 files, 17 MB in total) and fast-forwards headlessly to "now", in about a second at most.
 - **Background tabs:** browsers pause them; on return, the page catches up the same way.
 - **Kept honest:** `test/shared-run.test.ts` checks in CI that the checkpoints chain into one continuous run of the published champion.
 

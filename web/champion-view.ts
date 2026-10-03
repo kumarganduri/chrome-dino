@@ -89,7 +89,8 @@ export class ChampionView {
   /**
    * Jump to the wall-clock frame headlessly (no drawing): simulate every
    * missed frame in a null-canvas game, then move that state into the
-   * visible game. An hour of frames takes well under a second.
+   * visible game. Up to 4 hours of frames (one checkpoint gap) takes about a
+   * second on a laptop.
    */
   fastForward(): void {
     const target = this.targetFrame() - 1;

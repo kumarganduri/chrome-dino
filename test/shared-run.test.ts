@@ -1,6 +1,6 @@
 // The published shared run (web/data/live) must be one continuous run of the
-// published champion: every hourly checkpoint, played forward one hour, lands
-// exactly on the next checkpoint without a crash.
+// published champion: a checkpoint, played forward to the next one (run.json's
+// checkpointEvery frames), lands exactly on it without a crash.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync, readFileSync} from 'node:fs';
@@ -25,7 +25,7 @@ test('shared run checkpoints chain with the published champion', {skip: !has && 
   const probe = Game.create(engine, 0);
   probe.restore(load(0));
   assert.equal(probe.fullHash(), fresh.fullHash());
-  // Spot-check the first two hours and the last hour.
+  // Spot-check the first two gaps and the last one.
   const last = run.verifiedUntilFrame - run.checkpointEvery;
   for (const from of [0, run.checkpointEvery, last]) {
     const g = Game.create(engine, 0);

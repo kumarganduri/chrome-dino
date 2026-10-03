@@ -1,0 +1,58 @@
+{
+ "note": "Archive of the literal chrome://dino stream (scripts/real-chrome-live.mjs): a real Google Chrome tab on chrome://dino played by champion v3, streamed from one Mac. Stopped for good on 2026-10-02.",
+ "runs": [
+  {
+   "startedAt": 1790701909813,
+   "endedAt": 1790704226365,
+   "score": 44846,
+   "speed": null,
+   "killedBy": "stopped (stream restarted)",
+   "stopped": true,
+   "chrome": "Chrome/154.0.0.0",
+   "champion": 3,
+   "shot": null
+  },
+  {
+   "startedAt": 1790704230053,
+   "endedAt": 1790704842799,
+   "score": 11630,
+   "speed": null,
+   "killedBy": "stopped (stream restarted)",
+   "stopped": true,
+   "chrome": "Chrome/154.0.0.0",
+   "champion": 3,
+   "shot": "1790704230053.jpg"
+  },
+  {
+   "startedAt": 1790704847528,
+   "endedAt": 1790908009310,
+   "score": 3961627,
+   "speed": 13,
+   "killedBy": "pterodactyl@50",
+   "chrome": "Chrome/154.0.0.0",
+   "champion": 3,
+   "shot": "1790704847528.jpg"
+  },
+  {
+   "startedAt": 1790908011799,
+   "endedAt": 1790927556877,
+   "score": 380541,
+   "speed": 13,
+   "killedBy": "pterodactyl@50",
+   "chrome": "Chrome/154.0.0.0",
+   "champion": 3,
+   "shot": "1790908011799.jpg"
+  },
+  {
+   "startedAt": 1790927559385,
+   "endedAt": 1790970743274,
+   "score": 767746,
+   "speed": null,
+   "killedBy": "stopped (stream restarted)",
+   "stopped": true,
+   "shot": null,
+   "chrome": "Chrome/154.0.0.0",
+   "champion": 3
+  }
+ ]
+}

@@ -4,6 +4,8 @@
 
 ### ▶ [Watch it live](https://kumarganduri14.gitlab.io/chrome-dino) · ▶ [Start your own live run](https://kumarganduri14.gitlab.io/chrome-dino/?fresh=1)
 
+Source: [GitLab](https://gitlab.com/kumarganduri14/chrome-dino) (CI and the live page) · [GitHub](https://github.com/kumarganduri/chrome-dino) (identical mirror)
+
 ![dino.forever](docs/screenshot.png)
 
 ## Three ways to watch
